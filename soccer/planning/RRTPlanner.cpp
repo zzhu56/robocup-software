@@ -169,6 +169,10 @@ std::unique_ptr<InterpolatedPath> RRTPlanner::generateRRTPath(
             obstacles.add(
                 make_shared<Circle>(hitLocation, Robot_Radius * 1.5f));
             lastPath = std::move(path);
+
+            // draw dynamic obstacles
+            state->drawCircle(hitLocation, Robot_Radius * 1.5f, Qt::black,
+                              QString("%1_DynamicObstacles").arg(shellID));
         } else {
             return std::move(path);
         }
