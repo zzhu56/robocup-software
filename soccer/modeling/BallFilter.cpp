@@ -30,9 +30,9 @@ Ball BallFilter::predict(RJ::Time time, float* velocityUncertainty) const {
     const auto& vel = _currentEstimate.vel;
     const auto& pos = _currentEstimate.pos;
     const auto s0 = vel.mag();
-    auto part = std::exp(-0.2913f * t.count());
-    auto speed = s0 * part;
-    auto distance = s0 * -3.43289f * (part - 1.0f);
+    
+    auto speed = std::max(s0 - t.count() * 0.234, 0.0);
+    auto distance = t.count() * s0 - 0.117 * (t.count()) * (t.count());
 
     prediction.time = time;
     prediction.valid = true;

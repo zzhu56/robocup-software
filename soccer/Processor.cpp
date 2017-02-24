@@ -585,6 +585,8 @@ void Processor::run() {
             Packet::LogFrame::Ball* log = _state.logFrame->mutable_ball();
             *log->mutable_pos() = _state.ball.pos;
             *log->mutable_vel() = _state.ball.vel;
+
+            std::cout<<RJ::now().time_since_epoch().count() <<" "<<_state.ball.vel.x()<<std::endl;
         }
 
         ////////////////

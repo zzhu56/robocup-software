@@ -75,9 +75,9 @@ Planning::MotionInstant Ball::predict(RJ::Time estimateTime) const {
     // Based on sim ball
     // v = v0 * e^-0.2913t
     // d = v0 * -3.43289 (-1 + e^(-0.2913 t))
-    auto part = std::exp(-0.2913f * t.count());
-    auto speed = s0 * part;
-    auto distance = s0 * -3.43289f * (part - 1.0f);
+    
+    auto speed = std::max(s0 - t.count()*0.234, 0.0);
+    auto distance = t.count()*s0 - 0.117*t.count()*t.count();
 
     return MotionInstant(pos + vel.normalized(distance), vel.normalized(speed));
 }
@@ -90,10 +90,11 @@ RJ::Time Ball::estimateTimeTo(const Geometry2d::Point& point,
         *nearPointOut = nearPoint;
     }
     auto dist = nearPoint.distTo(pos);
-    // d = v0 * -3.43289 (-1 + e^(-0.2913 t))
-    // (d + v0 * -3.43289) / (v0 * -3.43289)= e^(-0.2913 t))
-    auto part = vel.mag() * -3.43289;
-    return time + RJ::Seconds(std::log((dist + part) / part) / -0.2913);
+    // d = t*v0 -0.117*t^2
+    // d = t*v0 
+    auto v0 = vel.mag();
+    auto t = 10.0/117.0 * (50.0 * v0 + sqrt(10.0) * sqrt(-117.0 * dist + 250.0 * v0 * v0));
+    return time + RJ::Seconds(t);
 }
 
 SystemState::SystemState() {
