@@ -16,6 +16,8 @@
 #include <stdexcept>
 #include <stdio.h>
 #include <utility>
+#include "Robot.hpp"
+#include "BatteryProfile.hpp"
 
 using namespace std;
 using namespace Geometry2d;
@@ -488,6 +490,21 @@ bool OurRobot::kickerWorks() const {
            rxIsFresh();
 }
 
+
+boost::optional<float> OurRobot::battery() const {
+    if(_robotStatusMessage.has_battery_level()) {
+        float battery = _robotStatusMessage.battery_level();
+        if (hardwareVersion() == Packet::RJ2008 ||
+            hardwareVersion() == Packet::RJ2011) {
+            return RJ2008BatteryProfile.getChargeLevel(battery);
+        } else if (hardwareVersion() == Packet::RJ2015) {
+            return RJ2015BatteryProfile.getChargeLevel(battery);
+        }
+    } else {
+        return boost::none;
+    }
+}
+
 bool OurRobot::chipper_available() const {
     return hardwareVersion() == Packet::RJ2011 && kickerWorks() &&
            *status->chipper_enabled;
@@ -498,9 +515,16 @@ bool OurRobot::kicker_available() const {
 }
 
 bool OurRobot::dribbler_available() const {
-    return *status->dribbler_enabled && _robotStatusMessage.motor_status().dribbler == Packet::Good;
+    return *status->dribbler_enabled && _robotStatusMessage.motor_status().dribbler() == Packet::Good;
 }
 
+Packet::MotorStatuses OurRobot::motorStatus() const {
+    return _robotStatusMessage.motor_status();
+}
+
+Packet::FpgaStatus OurRobot::fpgaStatus() const {
+    return _robotStatusMessage.fpga_status();
+}
 bool OurRobot::driving_available(bool require_all) const {
     int c = 0;
     const auto &motor_status = _robotStatusMessage.motor_status();
@@ -523,13 +547,12 @@ Packet::HardwareVersion OurRobot::hardwareVersion() const {
     if (rxIsFresh()) {
         return _robotStatusMessage.hardware_version();
     } else {
-        return Packet::Unknown;
+        return Packet::UnknownHardware;
     }
 }
 
 bool OurRobot::rxIsFresh(RJ::Seconds age) const {
-    return (RJ::now() - RJ::Time(chrono::microseconds(_robotStatusMessage.timestamp()))) <
-           age;
+    return (RJ::now() - _lastRobotStatusTime) < age;
 }
 
 RJ::Timestamp OurRobot::lastKickTime() const {

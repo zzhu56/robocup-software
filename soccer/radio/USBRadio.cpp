@@ -265,7 +265,7 @@ void USBRadio::receive() {
 
 // Note: this method assumes that sizeof(buf) == rtp::Reverse_Size
 void USBRadio::handleRxData(uint8_t* buf) {
-    RadioRx packet = RadioRx();
+    auto packet = RobotRxPacket();
 
     rtp::header_data* header = (rtp::header_data*)buf;
     rtp::RobotStatusMessage* msg =
@@ -274,34 +274,42 @@ void USBRadio::handleRxData(uint8_t* buf) {
     packet.set_timestamp(RJ::timestamp());
     packet.set_robot_id(msg->uid);
 
+    auto &robotStatusMessage = *packet.mutable_robot_status_message();
+
     // Hardware version
-    packet.set_hardware_version(RJ2015);
+    robotStatusMessage.set_hardware_version(RJ2015);
 
     // battery voltage
-    packet.set_battery(msg->battVoltage *
+    robotStatusMessage.set_battery_level(msg->battVoltage *
                        rtp::RobotStatusMessage::BATTERY_READING_SCALE_FACTOR);
 
     // ball sense
     if (BallSenseStatus_IsValid(msg->ballSenseStatus)) {
-        packet.set_ball_sense_status(BallSenseStatus(msg->ballSenseStatus));
+        robotStatusMessage.set_ball_sense_status(BallSenseStatus(msg->ballSenseStatus));
     }
 
     // Using same flags as 2011 robot. See firmware/robot2011/cpu/status.h.
     // Report that everything is good b/c the bot currently has no way of
     // detecting kicker issues
-    packet.set_kicker_status((msg->kickStatus ? Kicker_Charged : 0) |
+    robotStatusMessage.set_kicker_status((msg->kickStatus ? Kicker_Charged : 0) |
                              Kicker_Enabled | Kicker_I2C_OK);
 
-    // motor errors
-    for (int i = 0; i < 5; i++) {
-        bool err = msg->motorErrors & (1 << i);
-        packet.add_motor_status(err ? MotorStatus::Hall_Failure
-                                    : MotorStatus::Good);
-    }
+    auto &motorStatus = *robotStatusMessage.mutable_motor_status();
+    motorStatus.set_motor1(msg->motorErrors & (1 << 1) ? MotorStatus::Hall_Failure
+                                                       : MotorStatus::Good);
+    motorStatus.set_motor2(msg->motorErrors & (1 << 2) ? MotorStatus::Hall_Failure
+                                                       : MotorStatus::Good);
+    motorStatus.set_motor3(msg->motorErrors & (1 << 3) ? MotorStatus::Hall_Failure
+                                                       : MotorStatus::Good);
+    motorStatus.set_motor4(msg->motorErrors & (1 << 4) ? MotorStatus::Hall_Failure
+                                                       : MotorStatus::Good);
+
+    motorStatus.set_dribbler(msg->motorErrors & (1 << 5) ? MotorStatus::Hall_Failure
+                                                         : MotorStatus::Good);
 
     // fpga status
     if (FpgaStatus_IsValid(msg->fpgaStatus)) {
-        packet.set_fpga_status(FpgaStatus(msg->fpgaStatus));
+        robotStatusMessage.set_fpga_status(FpgaStatus(msg->fpgaStatus));
     }
 
     _reversePackets.push_back(packet);

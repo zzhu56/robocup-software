@@ -375,7 +375,7 @@ void Environment::handleRadioTx(bool blue, const Packet::RadioTx& tx) {
                    blue ? "Blue" : "Yellow", cmd.uid());
         }
 
-        Packet::RadioRx rx = r->radioRx();
+        Packet::RobotRxPacket rx = r->radioRx();
         rx.set_robot_id(r->shell);
 
         // Send the RX packet

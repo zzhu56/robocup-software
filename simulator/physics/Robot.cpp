@@ -256,32 +256,33 @@ void Robot::radioTx(const Packet::Control* data) {
     _controller->prepareDribbler(data->dvelocity());
 }
 
-Packet::RadioRx Robot::radioRx() const {
-    Packet::RadioRx packet;
+Packet::RobotRxPacket Robot::radioRx() const {
+    Packet::RobotRxPacket packet;
 
     packet.set_timestamp(RJ::timestamp());
-    packet.set_battery(15.0f);
-    packet.set_rssi(1.0f);
-    packet.set_kicker_status(_controller->getKickerStatus());
+    auto &robotStatusMessage = *packet.mutable_robot_status_message();
+    robotStatusMessage.set_battery_level(15.0f);
+    robotStatusMessage.set_kicker_status(_controller->getKickerStatus());
 
     // FIXME: No.
-    packet.set_ball_sense_status(
+    robotStatusMessage.set_ball_sense_status(
         (_controller->hasBall() || !_controller->ballSensorWorks)
             ? Packet::HasBall
             : Packet::NoBall);
 
-    // assume all motors working
-    for (size_t i = 0; i < 5; ++i) {
-        packet.add_motor_status(Packet::Good);
-    }
+    robotStatusMessage.mutable_motor_status()->set_motor1(Packet::Good);
+    robotStatusMessage.mutable_motor_status()->set_motor2(Packet::Good);
+    robotStatusMessage.mutable_motor_status()->set_motor3(Packet::Good);
+    robotStatusMessage.mutable_motor_status()->set_motor4(Packet::Good);
+    robotStatusMessage.mutable_motor_status()->set_dribbler(Packet::Good);
 
     if (_rev == rev2008) {
-        packet.set_hardware_version(Packet::RJ2008);
+        robotStatusMessage.set_hardware_version(Packet::RJ2008);
     } else if (_rev == rev2011)  // FIXME: change to actual 2011
     {
-        packet.set_hardware_version(Packet::RJ2011);
+        robotStatusMessage.set_hardware_version(Packet::RJ2011);
     } else {
-        packet.set_hardware_version(Packet::Unknown);
+        robotStatusMessage.set_hardware_version(Packet::UnknownHardware);
     }
 
     return packet;

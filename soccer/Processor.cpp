@@ -284,7 +284,7 @@ void Processor::run() {
                 case Packet::RJ2015:
                     robot->config = robotConfig2015;
                     break;
-                case Packet::Unknown:
+                case Packet::UnknownHardware:
                     robot->config =
                         robotConfig2011;  // FIXME: defaults to 2011 robots
                     break;
@@ -371,16 +371,20 @@ void Processor::run() {
         for (const Packet::RobotRxPacket& rx : _radio->reversePackets()) {
             _state.logFrame->add_robot_rx_packet()->CopyFrom(rx);
 
-            curStatus.lastRadioRxTime =
+            const auto lastRadioTime =
                 RJ::Time(chrono::microseconds(rx.timestamp()));
 
+            curStatus.lastRadioRxTime = lastRadioTime;
             // Store this packet in the appropriate robot
             unsigned int board = rx.robot_id();
             if (board < Num_Shells) {
                 // We have to copy because the RX packet will survive past this
                 // frame but LogFrame will not (the RadioRx in LogFrame will be
                 // reused).
-                _state.self[board]->setRadioRx(rx);
+
+                if (rx.has_robot_status_message()) {
+                    _state.self[board]->setRobotStatusMessage(rx.robot_status_message(), lastRadioTime);
+                }
                 _state.self[board]->radioRxUpdated();
             }
         }
@@ -534,33 +538,7 @@ void Processor::run() {
                 // log->set_cmd_w(r->cmd_w);
                 log->set_shell(r->shell());
                 log->set_angle(r->angle);
-                auto radioRx = r->radioRx();
-                if (radioRx.has_kicker_voltage()) {
-                    log->set_kicker_voltage(radioRx.kicker_voltage());
-                }
-
-                if (radioRx.has_kicker_status()) {
-                    log->set_charged(radioRx.kicker_status() & 0x01);
-                    log->set_kicker_works(!(radioRx.kicker_status() & 0x90));
-                }
-
-                if (radioRx.has_ball_sense_status()) {
-                    log->set_ball_sense_status(radioRx.ball_sense_status());
-                }
-
-                if (radioRx.has_battery()) {
-                    log->set_battery_voltage(radioRx.battery());
-                }
-
-                log->mutable_motor_status()->Clear();
-                log->mutable_motor_status()->MergeFrom(radioRx.motor_status());
-
-                if (radioRx.has_quaternion()) {
-                    log->mutable_quaternion()->Clear();
-                    log->mutable_quaternion()->MergeFrom(radioRx.quaternion());
-                } else {
-                    log->clear_quaternion();
-                }
+                *log->mutable_robot_status_message() = r->robotStatusMessage();
 
                 for (const Packet::DebugText& t : r->robotText) {
                     log->add_text()->CopyFrom(t);

@@ -36,8 +36,8 @@ void SimRadio::receive() {
         buf.resize(n);
         _socket.readDatagram(&buf[0], n);
 
-        _reversePackets.push_back(RadioRx());
-        RadioRx& packet = _reversePackets.back();
+        _reversePackets.push_back(RobotRxPacket());
+        auto& packet = _reversePackets.back();
 
         if (!packet.ParseFromString(buf)) {
             printf("Bad radio packet of %d bytes\n", n);

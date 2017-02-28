@@ -23,13 +23,13 @@ public:
 
     int channel() const { return _channel; }
 
-    const std::vector<Packet::RadioRx>& reversePackets() const {
+    const std::vector<Packet::RobotRxPacket>& reversePackets() const {
         return _reversePackets;
     }
 
     void clear() { _reversePackets.clear(); }
 
 protected:
-    std::vector<Packet::RadioRx> _reversePackets;
+    std::vector<Packet::RobotRxPacket> _reversePackets;
     int _channel;
 };

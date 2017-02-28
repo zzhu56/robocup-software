@@ -15,6 +15,7 @@
 #include <modeling/RobotFilter.hpp>
 #include <NewRefereeModule.hpp>
 #include "VisionReceiver.hpp"
+#include "../../../Library/Caches/CLion2016.2/cmake/generated/robocup-software-54852b86/54852b86/Debug/common/protobuf/RadioRx.pb.h"
 
 class Configuration;
 class RobotStatus;

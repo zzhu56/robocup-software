@@ -293,7 +293,7 @@ public:
     RJ::Timestamp lastKickTime() const;
 
     /// checks if the bot has kicked/chipped very recently.
-    bool justKicked() { return !(_radioRx.kicker_status() & Kicker_Charged); }
+    bool justKicked() { return !(_robotStatusMessage.kicker_status() & Kicker_Charged); }
 
     /**
      * Gets a string representing the series of commands called on the robot
@@ -386,14 +386,20 @@ public:
 
     Packet::HardwareVersion hardwareVersion() const;
 
-    void setRadioRx(Packet::RadioRx packet) {
+    Packet::MotorStatuses motorStatus() const;
+
+    Packet::FpgaStatus fpgaStatus() const;
+    boost::optional<float> battery() const;
+
+    void setRobotStatusMessage(Packet::RobotStatusMessage message, RJ::Time time = RJ::now()) {
         QWriteLocker locker(&radioRxMutex);
-        _radioRx = packet;
+        _robotStatusMessage = message;
+        _lastRobotStatusTime = time;
     }
 
-    Packet::RadioRx radioRx() const {
+    Packet::RobotStatusMessage robotStatusMessage() const {
         QReadLocker locker(&radioRxMutex);
-        return _radioRx;
+        return _robotStatusMessage;
     }
 
     const std::unique_ptr<Planning::MotionCommand>& motionCommand() const {
@@ -534,6 +540,7 @@ private:
     uint32_t _lastKickerStatus;
     RJ::Time _lastKickTime;
     RJ::Time _lastChargedTime;
+    RJ::Time _lastRobotStatusTime;
 
     Packet::RobotStatusMessage _robotStatusMessage;
     //Packet::RadioRx _radioRx;

@@ -128,7 +128,7 @@ public:
     void radioTx(const Packet::Control* data);
 
     /** get robot information data */
-    Packet::RadioRx radioRx() const;
+    Packet::RobotRxPacket radioRx() const;
 
     void renderWheels(GL_ShapeDrawer* shapeDrawer,
                       const btVector3& worldBoundsMin,
