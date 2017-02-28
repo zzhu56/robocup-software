@@ -147,6 +147,7 @@ target_link_libraries(robocup pthread)
 target_link_libraries(robocup spnav)
 target_link_libraries(robocup ${SDL2_LIBRARIES})
 target_link_libraries(robocup rrt)
+target_link_libraries(robocup nanopb_messages)
 
 # python
 # note: these are set in the root CMakeLists.txt file

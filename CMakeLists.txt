@@ -118,6 +118,8 @@ pkg_search_module(SDL2 REQUIRED sdl2)
 include_directories("${PROJECT_SOURCE_DIR}/common") # for headers in common/
 include_directories("${PROJECT_BINARY_DIR}/common") # for generated protobuf headers
 include_directories("${CMAKE_BINARY_DIR}/common") # for generated protobuf headers
+include_directories("${PROJECT_SOURCE_DIR}/external/nanopb") # for headers in common/
+include_directories("${CMAKE_BINARY_DIR}/external/nanopb") # for generated protobuf headers
 
 # setup ccache to speed up recompiles.  It's especially useful when switching back and forth
 # between branches where you'd normally have to recompile things many times.
@@ -128,6 +130,10 @@ if(NOT STATIC_ANALYSIS)
 endif()
 
 # run all the other CMakeLists files
+
+set(NANOPB_CPP_PLUGIN "${PROJECT_SOURCE_DIR}/external/nanopb/generator/protoc-gen-nanopb")
+
+add_subdirectory(external/nanopb)
 add_subdirectory(common)
 add_subdirectory(soccer)
 add_subdirectory(simulator)
