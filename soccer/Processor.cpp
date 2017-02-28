@@ -368,8 +368,8 @@ void Processor::run() {
         // Read radio reverse packets
         _radio->receive();
 
-        for (const Packet::RadioRx& rx : _radio->reversePackets()) {
-            _state.logFrame->add_radio_rx()->CopyFrom(rx);
+        for (const Packet::RobotRxPacket& rx : _radio->reversePackets()) {
+            _state.logFrame->add_robot_rx_packet()->CopyFrom(rx);
 
             curStatus.lastRadioRxTime =
                 RJ::Time(chrono::microseconds(rx.timestamp()));

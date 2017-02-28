@@ -168,10 +168,6 @@ public:
     // FIXME - Function name and comment don't match
     bool behindBall(Geometry2d::Point ballPos) const;
 
-    // Gets the robot quaternion.  Returns false (and does not change q) if not
-    // available.
-    boost::optional<Eigen::Quaternionf> quaternion() const;
-
     // Constraints
     const RobotConstraints& robotConstraints() const {
         return _robotConstraints;
@@ -387,7 +383,7 @@ public:
     bool hasBall() const;
     bool ballSenseWorks() const;
     bool kickerWorks() const;
-    float kickerVoltage() const;
+
     Packet::HardwareVersion hardwareVersion() const;
 
     void setRadioRx(Packet::RadioRx packet) {
@@ -539,7 +535,8 @@ private:
     RJ::Time _lastKickTime;
     RJ::Time _lastChargedTime;
 
-    Packet::RadioRx _radioRx;
+    Packet::RobotStatusMessage _robotStatusMessage;
+    //Packet::RadioRx _radioRx;
 
     /**
      * We build a string of commands such as face(), move(), etc at each

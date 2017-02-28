@@ -468,23 +468,23 @@ Geometry2d::ShapeSet OurRobot::collectAllObstacles(
 }
 
 bool OurRobot::charged() const {
-    return _radioRx.has_kicker_status() && (_radioRx.kicker_status() & 0x01) &&
+    return _robotStatusMessage.has_kicker_status() && (_robotStatusMessage.kicker_status() & 0x01) &&
            rxIsFresh();
 }
 
 bool OurRobot::hasBall() const {
-    return _radioRx.has_ball_sense_status() &&
-           _radioRx.ball_sense_status() == Packet::HasBall && rxIsFresh();
+    return _robotStatusMessage.has_ball_sense_status() &&
+            _robotStatusMessage.ball_sense_status() == Packet::HasBall && rxIsFresh();
 }
 
 bool OurRobot::ballSenseWorks() const {
-    return rxIsFresh() && _radioRx.has_ball_sense_status() &&
-           (_radioRx.ball_sense_status() == Packet::NoBall ||
-            _radioRx.ball_sense_status() == Packet::HasBall);
+    return rxIsFresh() && _robotStatusMessage.has_ball_sense_status() &&
+           (_robotStatusMessage.ball_sense_status() == Packet::NoBall ||
+            _robotStatusMessage.ball_sense_status() == Packet::HasBall);
 }
 
 bool OurRobot::kickerWorks() const {
-    return _radioRx.has_kicker_status() && !(_radioRx.kicker_status() & 0x80) &&
+    return _robotStatusMessage.has_kicker_status() && !(_robotStatusMessage.kicker_status() & 0x80) &&
            rxIsFresh();
 }
 
@@ -498,50 +498,37 @@ bool OurRobot::kicker_available() const {
 }
 
 bool OurRobot::dribbler_available() const {
-    return *status->dribbler_enabled && _radioRx.motor_status_size() == 5 &&
-           _radioRx.motor_status(4) == Packet::Good;
+    return *status->dribbler_enabled && _robotStatusMessage.motor_status().dribbler == Packet::Good;
 }
 
 bool OurRobot::driving_available(bool require_all) const {
-    if (_radioRx.motor_status_size() != 5) return false;
     int c = 0;
-    for (int i = 0; i < 4; ++i) {
-        if (_radioRx.motor_status(i) == Packet::Good) {
-            ++c;
-        }
+    const auto &motor_status = _robotStatusMessage.motor_status();
+    if (motor_status.motor1() == Packet::Good) {
+        ++c;
+    }
+    if (motor_status.motor2() == Packet::Good) {
+        ++c;
+    }
+    if (motor_status.motor3() == Packet::Good) {
+        ++c;
+    }
+    if (motor_status.motor4() == Packet::Good) {
+        ++c;
     }
     return (require_all) ? c == 4 : c == 3;
 }
 
-float OurRobot::kickerVoltage() const {
-    if (_radioRx.has_kicker_voltage() && rxIsFresh()) {
-        return _radioRx.kicker_voltage();
-    } else {
-        return 0;
-    }
-}
-
 Packet::HardwareVersion OurRobot::hardwareVersion() const {
     if (rxIsFresh()) {
-        return _radioRx.hardware_version();
+        return _robotStatusMessage.hardware_version();
     } else {
         return Packet::Unknown;
     }
 }
 
-boost::optional<Eigen::Quaternionf> OurRobot::quaternion() const {
-    if (_radioRx.has_quaternion() && rxIsFresh(RJ::Seconds(0.05))) {
-        return Eigen::Quaternionf(_radioRx.quaternion().q0() / 16384.0,
-                                  _radioRx.quaternion().q1() / 16384.0,
-                                  _radioRx.quaternion().q2() / 16384.0,
-                                  _radioRx.quaternion().q3() / 16384.0);
-    } else {
-        return boost::none;
-    }
-}
-
 bool OurRobot::rxIsFresh(RJ::Seconds age) const {
-    return (RJ::now() - RJ::Time(chrono::microseconds(_radioRx.timestamp()))) <
+    return (RJ::now() - RJ::Time(chrono::microseconds(_robotStatusMessage.timestamp()))) <
            age;
 }
 
@@ -550,10 +537,10 @@ RJ::Timestamp OurRobot::lastKickTime() const {
 }
 
 void OurRobot::radioRxUpdated() {
-    if (_radioRx.kicker_status() < _lastKickerStatus) {
+    if (_robotStatusMessage.kicker_status() < _lastKickerStatus) {
         _lastKickTime = RJ::now();
     }
-    _lastKickerStatus = _radioRx.kicker_status();
+    _lastKickerStatus = _robotStatusMessage.kicker_status();
 }
 
 double OurRobot::distanceToChipLanding(int chipPower) {
