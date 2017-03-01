@@ -62,9 +62,9 @@ void OurRobot::createConfiguration(Configuration* cfg) {
 OurRobot::OurRobot(int shell, SystemState* state)
     : Robot(shell, true), _state(state) {
     _cmdText = new std::stringstream();
-    Packet::Control* ctl = new Packet::Control();
-    robotPacket.set_allocated_control(ctl);
-    control = ctl;
+    //Packet::Control* ctl = new Packet::Control();
+    //robotPacket.set_allocated_control(ctl);
+    //control = ctl;
 
     //_lastChargedTime = 0;
     //_lastKickTime = 0;
@@ -131,9 +131,9 @@ void OurRobot::resetForNextIteration() {
 
     _clearCmdText();
 
-    control->Clear();
-    control->set_dvelocity(0);
-    robotPacket.set_uid(shell());
+    robotControl.Clear();
+    //control->set_dvelocity(0);
+    //robotPacket.set_uid(shell());
 
     if (charged()) {
         _lastChargedTime = RJ::now();
@@ -143,7 +143,7 @@ void OurRobot::resetForNextIteration() {
 
     resetMotionConstraints();
     _unkick();
-    control->set_song(Packet::Control::STOP);
+    //control->set_song(Packet::Control::STOP);
 
     isPenaltyKicker = false;
     isBallPlacer = false;
@@ -246,8 +246,8 @@ float OurRobot::kickTimer() const {
 }
 
 void OurRobot::dribble(uint8_t speed) {
-    uint8_t scaled = *config->dribbler.multiplier * speed;
-    control->set_dvelocity(scaled);
+    auto scaled = *config->dribbler.multiplier * speed;
+    robotControl.mutable_other_controls()->set_dvelocity(scaled);
 
     *_cmdText << "dribble(" << (float)speed << ")" << endl;
 }
@@ -291,22 +291,25 @@ void OurRobot::chipLevel(uint8_t strength) {
 
 void OurRobot::_kick(uint8_t strength) {
     uint8_t max = *config->kicker.maxKick;
-    control->set_kcstrength(strength > max ? max : strength);
-    control->set_shootmode(Packet::Control::KICK);
-    control->set_triggermode(Packet::Control::ON_BREAK_BEAM);
+    auto &otherControls = *robotControl.mutable_other_controls();
+    otherControls.set_kcstrength(strength > max ? max : strength);
+    otherControls.set_shootmode(Packet::OtherControls::KICK);
+    otherControls.set_triggermode(Packet::OtherControls::ON_BREAK_BEAM);
 }
 
 void OurRobot::_chip(uint8_t strength) {
     uint8_t max = *config->kicker.maxChip;
-    control->set_kcstrength(strength > max ? max : strength);
-    control->set_shootmode(Packet::Control::CHIP);
-    control->set_triggermode(Packet::Control::ON_BREAK_BEAM);
+    auto &otherControls = *robotControl.mutable_other_controls();
+    otherControls.set_kcstrength(strength > max ? max : strength);
+    otherControls.set_shootmode(Packet::OtherControls::CHIP);
+    otherControls.set_triggermode(Packet::OtherControls::ON_BREAK_BEAM);
 }
 
 void OurRobot::_unkick() {
-    control->set_kcstrength(0);
-    control->set_shootmode(Packet::Control::KICK);
-    control->set_triggermode(Packet::Control::STAND_DOWN);
+    auto &otherControls = *robotControl.mutable_other_controls();
+    otherControls.set_kcstrength(0);
+    otherControls.set_shootmode(Packet::OtherControls::KICK);
+    otherControls.set_triggermode(Packet::OtherControls::STAND_DOWN);
 }
 
 void OurRobot::unkick() {
@@ -316,7 +319,7 @@ void OurRobot::unkick() {
 }
 
 void OurRobot::kickImmediately() {
-    control->set_triggermode(Packet::Control::IMMEDIATE);
+    robotControl.mutable_other_controls()->set_triggermode(Packet::OtherControls::IMMEDIATE);
 }
 
 #pragma mark Robot Avoidance

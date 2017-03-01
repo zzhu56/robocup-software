@@ -27,7 +27,7 @@ public:
     ~USBRadio();
 
     virtual bool isOpen() const override;
-    virtual void send(Packet::RadioTx& packet) override;
+    virtual void send(Packet::RobotsTxPacket& packet) override;
     virtual void receive() override;
 
     virtual void channel(int n) override;

@@ -6,6 +6,7 @@
 #include <Utils.hpp>
 #include <planning/MotionInstant.hpp>
 #include "TrapezoidalMotion.hpp"
+#include "../Robot.hpp"
 
 #include <stdio.h>
 #include <algorithm>
@@ -32,7 +33,7 @@ void MotionControl::createConfiguration(Configuration* cfg) {
 MotionControl::MotionControl(OurRobot* robot) : _angleController(0, 0, 0, 50) {
     _robot = robot;
 
-    _robot->robotPacket.set_uid(_robot->shell());
+    //_robot->robotPacket.set_uid(_robot->shell());
 }
 
 void MotionControl::run() {
@@ -208,8 +209,7 @@ void MotionControl::_targetAngleVel(float angleVel) {
             angleVel > 0 ? minEffectiveAngularSpeed : -minEffectiveAngularSpeed;
     }
 
-    // the robot firmware still speaks degrees, so that's how we send it over
-    _robot->control->set_avelocity(angleVel);
+    _robot->robotControl.mutable_float_vel_commands()->set_wvelocity(angleVel);
 }
 
 void MotionControl::_targetBodyVel(Point targetVel) {
@@ -237,6 +237,6 @@ void MotionControl::_targetBodyVel(Point targetVel) {
     }
 
     // set control values
-    _robot->control->set_xvelocity(targetVel.x());
-    _robot->control->set_yvelocity(targetVel.y());
+    _robot->robotControl.mutable_float_vel_commands()->set_xvelocity(targetVel.x());
+    _robot->robotControl.mutable_float_vel_commands()->set_yvelocity(targetVel.y());
 }

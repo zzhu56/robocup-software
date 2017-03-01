@@ -667,51 +667,60 @@ void Processor::updateGeometryPacket(const SSL_GeometryFieldSize& fieldSize) {
 }
 
 void Processor::sendRadioData() {
-    Packet::RadioTx* tx = _state.logFrame->mutable_radio_tx();
-    tx->set_txmode(Packet::RadioTx::UNICAST);
+    Packet::RobotsTxPacket &tx = *_state.logFrame->mutable_radio_tx_packets();
+    //tx->set_txmode(Packet::RadioTx::UNICAST);
 
     // Halt overrides normal motion control, but not joystick
     if (_state.gameState.halt()) {
         // Force all motor speeds to zero
         for (OurRobot* r : _state.self) {
-            Packet::Control* control = r->control;
+            auto &control = r->robotControl;
+            control.Clear();
+            /*
             control->set_xvelocity(0);
             control->set_yvelocity(0);
-            control->set_avelocity(0);
+            control->set_wvelocity(0);
             control->set_dvelocity(0);
             control->set_kcstrength(0);
             control->set_shootmode(Packet::Control::KICK);
             control->set_triggermode(Packet::Control::STAND_DOWN);
             control->set_song(Packet::Control::STOP);
+             */
         }
     }
 
     // Add RadioTx commands for visible robots and apply joystick input
     for (OurRobot* r : _state.self) {
         if (r->visible || _manualID == r->shell()) {
-            Packet::Robot* txRobot = tx->add_robots();
-
+            if (r->shell() == _manualID) {
+                const JoystickControlValues controlVals =
+                        getJoystickControlValues();
+                applyJoystickControls(controlVals, &r->robotControl, r);
+            }
+            Packet::RobotTxPacket &txRobot = *tx.add_robots();
+            txRobot.set_uid(r->shell());
             // Copy motor commands.
             // Even if we are using the joystick, this sets robot_id and the
             // number of motors.
-            txRobot->CopyFrom(r->robotPacket);
+            auto &control = *txRobot.mutable_control();
+            auto &integer_vel_commands = *control.mutable_integer_vel_commands();
 
-            if (r->shell() == _manualID) {
-                const JoystickControlValues controlVals =
-                    getJoystickControlValues();
-                applyJoystickControls(controlVals, txRobot->mutable_control(),
-                                      r);
-            }
+            const auto& floatVelCommands = *r->robotControl.mutable_float_vel_commands();
+            integer_vel_commands.set_xvelocity(static_cast<int>(rtp::VELOCITY_SCALE_FACTOR*floatVelCommands.xvelocity()));
+            integer_vel_commands.set_yvelocity(static_cast<int>(rtp::VELOCITY_SCALE_FACTOR*floatVelCommands.yvelocity()));
+            integer_vel_commands.set_wvelocity(static_cast<int>(rtp::VELOCITY_SCALE_FACTOR*floatVelCommands.wvelocity()));
+
+            *control.mutable_other_controls() = r->robotControl.other_controls();
         }
     }
 
     if (_radio) {
-        _radio->send(*_state.logFrame->mutable_radio_tx());
+        _radio->send(tx);
     }
 }
 
 void Processor::applyJoystickControls(const JoystickControlValues& controlVals,
-                                      Packet::Control* tx, OurRobot* robot) {
+                                      Packet::RobotControl* tx, OurRobot* robot) {
     Geometry2d::Point translation(controlVals.translation);
 
     // use world coordinates if we can see the robot
@@ -721,22 +730,25 @@ void Processor::applyJoystickControls(const JoystickControlValues& controlVals,
     }
 
     // translation
-    tx->set_xvelocity(translation.x());
-    tx->set_yvelocity(translation.y());
+    auto &float_vels = *tx->mutable_float_vel_commands();
+    float_vels.set_xvelocity(translation.x());
+    float_vels.set_yvelocity(translation.y());
 
     // rotation
-    tx->set_avelocity(controlVals.rotation);
+    float_vels.set_wvelocity(controlVals.rotation);
+
+    auto &other_controls = *tx->mutable_other_controls();
 
     // kick/chip
     bool kick = controlVals.kick || controlVals.chip;
-    tx->set_triggermode(kick ? Packet::Control::IMMEDIATE
-                             : Packet::Control::STAND_DOWN);
-    tx->set_kcstrength(controlVals.kickPower);
-    tx->set_shootmode(controlVals.kick ? Packet::Control::KICK
-                                       : Packet::Control::CHIP);
+    other_controls.set_triggermode(kick ? Packet::OtherControls::IMMEDIATE
+                             : Packet::OtherControls::STAND_DOWN);
+    other_controls.set_kcstrength(controlVals.kickPower);
+    other_controls.set_shootmode(controlVals.kick ? Packet::OtherControls::KICK
+                                       : Packet::OtherControls::CHIP);
 
     // dribbler
-    tx->set_dvelocity(controlVals.dribble ? controlVals.dribblerPower : 0);
+    other_controls.set_dvelocity(controlVals.dribble ? controlVals.dribblerPower : 0);
 }
 
 JoystickControlValues Processor::getJoystickControlValues() {

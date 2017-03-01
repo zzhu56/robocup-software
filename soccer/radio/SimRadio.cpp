@@ -2,7 +2,10 @@
 
 #include <Network.hpp>
 #include <stdexcept>
-
+#include <iostream>
+#include "firmware-common/common2015/utils/rtp.hpp"
+#include "google/protobuf/io/zero_copy_stream_impl_lite.h"
+#include "google/protobuf/io/gzip_stream.h"
 using namespace std;
 using namespace Packet;
 
@@ -22,9 +25,15 @@ bool SimRadio::isOpen() const {
     return true;
 }
 
-void SimRadio::send(Packet::RadioTx& packet) {
+void SimRadio::send(Packet::RobotsTxPacket& packet) {
     std::string out;
+    //google::protobuf::io::StringOutputStream stream(&out);
+    //google::protobuf::io::GzipOutputStream gzip(&stream);
     packet.SerializeToString(&out);
+    //cout<<gzip.ByteCount()<<endl;
+    //gzip.Close();
+    //cout<<stream.ByteCount()<<endl;
+    //cout<<"send packet"<<rtp::Forward_Size<<endl;
     _socket.writeDatagram(&out[0], out.size(), LocalAddress,
                           RadioTxPort + _channel);
 }

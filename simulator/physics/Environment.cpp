@@ -86,16 +86,16 @@ void Environment::step() {
 
     // Check for RadioTx packets from blue team
     while (_radioSocketBlue.hasPendingDatagrams()) {
-        Packet::RadioTx tx;
-        if (!loadPacket<Packet::RadioTx>(_radioSocketBlue, tx)) continue;
+        Packet::RobotsTxPacket tx;
+        if (!loadPacket<Packet::RobotsTxPacket>(_radioSocketBlue, tx)) continue;
 
         handleRadioTx(true, tx);
     }
 
     // Check for RadioTx packets from yellow team
     while (_radioSocketYellow.hasPendingDatagrams()) {
-        Packet::RadioTx tx;
-        if (!loadPacket<Packet::RadioTx>(_radioSocketYellow, tx)) continue;
+        Packet::RobotsTxPacket tx;
+        if (!loadPacket<Packet::RobotsTxPacket>(_radioSocketYellow, tx)) continue;
         handleRadioTx(false, tx);
     }
 
@@ -355,38 +355,40 @@ Robot* Environment::robot(bool blue, int board_id) const {
     }
 }
 
-void Environment::handleRadioTx(bool blue, const Packet::RadioTx& tx) {
+void Environment::handleRadioTx(bool blue, const Packet::RobotsTxPacket& tx) {
     lastUpdate = RJ::now();
 
     for (int i = 0; i < tx.robots_size(); ++i) {
-        const Packet::Robot& cmd = tx.robots(i);
+        const auto& cmd = tx.robots(i);
+        if (cmd.has_control()) {
 
-        Robot* r = robot(blue, cmd.uid());
-        if (r) {
-            // run controls update
-            r->radioTx(&cmd.control());
+            Robot *r = robot(blue, cmd.uid());
+            if (r) {
+                // run controls update
+                r->radioTx(cmd.control());
 
-            // trigger signals to update visualization
-            Geometry2d::Point pos2 = r->getPosition();
-            QVector3D pos3(pos2.x(), pos2.y(), 0.0);
-            QVector3D axis(0.0, 0.0, 1.0);
-        } else {
-            printf("Commanding nonexistent robot %s:%d\n",
-                   blue ? "Blue" : "Yellow", cmd.uid());
+                // trigger signals to update visualization
+                Geometry2d::Point pos2 = r->getPosition();
+                QVector3D pos3(pos2.x(), pos2.y(), 0.0);
+                QVector3D axis(0.0, 0.0, 1.0);
+            } else {
+                printf("Commanding nonexistent robot %s:%d\n",
+                       blue ? "Blue" : "Yellow", cmd.uid());
+            }
+
+            Packet::RobotRxPacket rx = r->radioRx();
+            rx.set_robot_id(r->shell);
+
+            // Send the RX packet
+            std::string out;
+            rx.SerializeToString(&out);
+            if (blue)
+                _radioSocketBlue.writeDatagram(&out[0], out.size(), LocalAddress,
+                                               RadioRxPort + 1);
+            else
+                _radioSocketYellow.writeDatagram(&out[0], out.size(), LocalAddress,
+                                                 RadioRxPort);
         }
-
-        Packet::RobotRxPacket rx = r->radioRx();
-        rx.set_robot_id(r->shell);
-
-        // Send the RX packet
-        std::string out;
-        rx.SerializeToString(&out);
-        if (blue)
-            _radioSocketBlue.writeDatagram(&out[0], out.size(), LocalAddress,
-                                           RadioRxPort + 1);
-        else
-            _radioSocketYellow.writeDatagram(&out[0], out.size(), LocalAddress,
-                                             RadioRxPort);
     }
 
     // FIXME: the interface changed for this part

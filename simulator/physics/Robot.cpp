@@ -11,6 +11,7 @@
 #include <cmath>
 
 #include <Geometry2d/TransformMatrix.hpp>
+#include "firmware-common/common2015/utils/rtp.hpp"
 
 using namespace Geometry2d;
 
@@ -247,13 +248,19 @@ void Robot::getWorldTransform(btTransform& chassisWorldTrans) const {
     _robotChassis->getMotionState()->getWorldTransform(chassisWorldTrans);
 }
 
-void Robot::radioTx(const Packet::Control* data) {
-    velocity(data->xvelocity(), data->yvelocity(), data->avelocity());
-    _controller->prepareKick(data->triggermode() != Packet::Control::STAND_DOWN
-                                 ? data->kcstrength()
+void Robot::radioTx(const Packet::RadioRobotControl &data) {
+    const auto &integer_vel = data.integer_vel_commands();
+    float xVel = integer_vel.xvelocity() / rtp::VELOCITY_SCALE_FACTOR;
+    velocity(integer_vel.xvelocity() / rtp::VELOCITY_SCALE_FACTOR,
+             integer_vel.yvelocity() / rtp::VELOCITY_SCALE_FACTOR,
+             integer_vel.wvelocity() / rtp::VELOCITY_SCALE_FACTOR);
+
+    const auto &otherControls = data.other_controls();
+    _controller->prepareKick(otherControls.triggermode() != Packet::OtherControls::STAND_DOWN
+                                 ? otherControls.kcstrength()
                                  : 0,
-                             data->shootmode() == Packet::Control::CHIP);
-    _controller->prepareDribbler(data->dvelocity());
+                             otherControls.shootmode() == Packet::OtherControls::CHIP);
+    _controller->prepareDribbler(otherControls.dvelocity());
 }
 
 Packet::RobotRxPacket Robot::radioRx() const {

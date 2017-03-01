@@ -166,7 +166,7 @@ uint8_t USBRadio::read(uint8_t reg) {
 
 bool USBRadio::isOpen() const { return _device; }
 
-void USBRadio::send(Packet::RadioTx& packet) {
+void USBRadio::send(Packet::RobotsTxPacket& packet) {
     QMutexLocker lock(&_mutex);
     if (!_device) {
         if (!open()) {
@@ -174,6 +174,7 @@ void USBRadio::send(Packet::RadioTx& packet) {
         }
     }
 
+    /*
     uint8_t forward_packet[rtp::Forward_Size];
 
     // ensure Forward_Size is correct
@@ -247,6 +248,7 @@ void USBRadio::send(Packet::RadioTx& packet) {
             _device = nullptr;
         }
     }
+     */
 }
 
 void USBRadio::receive() {

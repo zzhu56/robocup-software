@@ -127,7 +127,7 @@ public:
 
 private:
     static void convert_robot(const Robot* robot, SSL_DetectionRobot* out);
-    void handleRadioTx(bool blue, const Packet::RadioTx& data);
+    void handleRadioTx(bool blue, const Packet::RobotsTxPacket& data);
 
     void handleSimCommand(const Packet::SimCommand& cmd);
 

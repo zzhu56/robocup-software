@@ -125,7 +125,7 @@ public:
     void setBrakingForce(float val) { _brakingForce = val; }
 
     /** set control data */
-    void radioTx(const Packet::Control* data);
+    void radioTx(const Packet::RadioRobotControl &data);
 
     /** get robot information data */
     Packet::RobotRxPacket radioRx() const;

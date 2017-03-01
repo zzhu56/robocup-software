@@ -192,7 +192,7 @@ protected:
     void run() override;
 
     void applyJoystickControls(const JoystickControlValues& controlVals,
-                               Packet::Control* txRobot, OurRobot* robot);
+                               Packet::RobotControl* txRobot, OurRobot* robot);
 
 private:
     // Configuration for different models of robots
