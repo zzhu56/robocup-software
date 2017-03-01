@@ -385,7 +385,6 @@ void Processor::run() {
                 if (rx.has_robot_status_message()) {
                     _state.self[board]->setRobotStatusMessage(rx.robot_status_message(), lastRadioTime);
                 }
-                _state.self[board]->radioRxUpdated();
             }
         }
         _radio->clear();

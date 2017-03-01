@@ -67,7 +67,6 @@ OurRobot::OurRobot(int shell, SystemState* state)
     control = ctl;
 
     //_lastChargedTime = 0;
-    _lastKickerStatus = 0;
     //_lastKickTime = 0;
 
     _motionControl = new MotionControl(this);
@@ -470,8 +469,7 @@ Geometry2d::ShapeSet OurRobot::collectAllObstacles(
 }
 
 bool OurRobot::charged() const {
-    return _robotStatusMessage.has_kicker_status() && (_robotStatusMessage.kicker_status() & 0x01) &&
-           rxIsFresh();
+    return _robotStatusMessage.kicker_status() == Packet::KickerCharged;
 }
 
 bool OurRobot::hasBall() const {
@@ -486,8 +484,10 @@ bool OurRobot::ballSenseWorks() const {
 }
 
 bool OurRobot::kickerWorks() const {
-    return _robotStatusMessage.has_kicker_status() && !(_robotStatusMessage.kicker_status() & 0x80) &&
-           rxIsFresh();
+    //return _robotStatusMessage.has_kicker_status() && !(_robotStatusMessage.kicker_status() & 0x80) &&
+    //       rxIsFresh();
+    //TODO: Fix this
+    return true;
 }
 
 
@@ -560,7 +560,8 @@ RJ::Timestamp OurRobot::lastKickTime() const {
 }
 
 void OurRobot::radioRxUpdated() {
-    if (_robotStatusMessage.kicker_status() < _lastKickerStatus) {
+    if (_lastKickerStatus == Packet::KickerCharged && _robotStatusMessage.kicker_status() == Packet::KickerCharging){
+        cout<<"ayyy"<<endl;
         _lastKickTime = RJ::now();
     }
     _lastKickerStatus = _robotStatusMessage.kicker_status();
@@ -576,4 +577,16 @@ uint8_t OurRobot::chipPowerForDistance(double distance) {
     if (distance < b) return 0;
     if (distance > distanceToChipLanding(255)) return 255;
     return 0.5 * distance + b;
+}
+
+bool OurRobot::justKicked() const {
+    constexpr auto justKickedTime = 1000ms;
+    return RJ::now() - _lastKickTime < justKickedTime;
+}
+
+void OurRobot::setRobotStatusMessage(Packet::RobotStatusMessage message, RJ::Time time) {
+    QWriteLocker locker(&radioRxMutex);
+    _robotStatusMessage = message;
+    _lastRobotStatusTime = time;
+    radioRxUpdated();
 }

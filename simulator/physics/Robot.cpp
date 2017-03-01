@@ -262,7 +262,7 @@ Packet::RobotRxPacket Robot::radioRx() const {
     packet.set_timestamp(RJ::timestamp());
     auto &robotStatusMessage = *packet.mutable_robot_status_message();
     robotStatusMessage.set_battery_level(15.0f);
-    robotStatusMessage.set_kicker_status(_controller->getKickerStatus());
+    robotStatusMessage.set_kicker_status(_controller->getKickerStatus() ? Packet::KickerCharged : Packet::KickerCharging);
 
     // FIXME: No.
     robotStatusMessage.set_ball_sense_status(
@@ -275,6 +275,8 @@ Packet::RobotRxPacket Robot::radioRx() const {
     robotStatusMessage.mutable_motor_status()->set_motor3(Packet::Good);
     robotStatusMessage.mutable_motor_status()->set_motor4(Packet::Good);
     robotStatusMessage.mutable_motor_status()->set_dribbler(Packet::Good);
+
+    robotStatusMessage.set_fpga_status(Packet::FpgaGood);
 
     if (_rev == rev2008) {
         robotStatusMessage.set_hardware_version(Packet::RJ2008);

@@ -28,6 +28,8 @@
 #include <QWriteLocker>
 
 #include "firmware-common/robot2015/cpu/status.h"
+#include "../common/time.hpp"
+#include "../../../../../Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/cstdint"
 
 class SystemState;
 class RobotConfig;
@@ -293,7 +295,7 @@ public:
     RJ::Timestamp lastKickTime() const;
 
     /// checks if the bot has kicked/chipped very recently.
-    bool justKicked() { return !(_robotStatusMessage.kicker_status() & Kicker_Charged); }
+    bool justKicked() const;
 
     /**
      * Gets a string representing the series of commands called on the robot
@@ -391,11 +393,7 @@ public:
     Packet::FpgaStatus fpgaStatus() const;
     boost::optional<float> battery() const;
 
-    void setRobotStatusMessage(Packet::RobotStatusMessage message, RJ::Time time = RJ::now()) {
-        QWriteLocker locker(&radioRxMutex);
-        _robotStatusMessage = message;
-        _lastRobotStatusTime = time;
-    }
+    void setRobotStatusMessage(Packet::RobotStatusMessage message, RJ::Time time = RJ::now());
 
     Packet::RobotStatusMessage robotStatusMessage() const {
         QReadLocker locker(&radioRxMutex);
@@ -537,7 +535,7 @@ private:
     void _chip(uint8_t strength);
     void _unkick();
 
-    uint32_t _lastKickerStatus;
+    Packet::KickerStatus _lastKickerStatus{};
     RJ::Time _lastKickTime;
     RJ::Time _lastChargedTime;
     RJ::Time _lastRobotStatusTime;

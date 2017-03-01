@@ -689,12 +689,15 @@ void MainWindow::updateViews() {
             }
 
             // check for kicker error code
-            bool kickerFault = !robot->kickerWorks();
+            bool kickerFault = false;
 
-            bool kicker_charging = robot->charged();
-            statusWidget->setKickerState(kicker_charging);
+            //TODO: REDO Kicker Statuses!
+
+            bool kicker_charged = robot->charged();
+            //bool kicker_charging = robot->charged();
+            statusWidget->setKickerState(kicker_charged);
             bool ballSenseFault = !robot->ballSenseWorks();
-            if (kickerFault) errorList << "Kicker Fault";
+            //if (kickerFault) errorList << "Kicker Fault";
             if (ballSenseFault) errorList << "Ball Sense Fault";
             statusWidget->setBallSenseFault(ballSenseFault);
 
@@ -729,9 +732,8 @@ void MainWindow::updateViews() {
             // if there is an error bad enough that we should get this robot
             // off the field, alert the user through the UI that there is a
             // "showstopper"
-            bool showstopper = !hasVision || !hasRadio || hasMotorFault ||
-                               kickerFault || ballSenseFault ||
-                               !batteryLevel || (*batteryLevel < 0.25) || !fpgaWorking;
+            bool showstopper = !hasVision || !hasRadio || hasMotorFault || kickerFault ||
+                               ballSenseFault || !batteryLevel || (*batteryLevel < 0.25) || !fpgaWorking;
             statusWidget->setShowstopper(showstopper);
 
 #endif
