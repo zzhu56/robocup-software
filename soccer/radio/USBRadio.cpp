@@ -174,14 +174,16 @@ void USBRadio::send(Packet::RobotsTxPacket& packet) {
         }
     }
 
-    /*
-    uint8_t forward_packet[rtp::Forward_Size];
+    std::string out;
+    packet.SerializeToString(&out);
+    const auto forward_size = sizeof(rtp::header_data) + out.size();
+    uint8_t forward_packet[forward_size];
 
     // ensure Forward_Size is correct
-    static_assert(sizeof(rtp::header_data) + 6 * sizeof(rtp::ControlMessage) ==
+    /*static_assert(sizeof(rtp::header_data) + 6 * sizeof(rtp::ControlMessage) ==
                       rtp::Forward_Size,
                   "Forward packet contents exceeds buffer size");
-
+    */
     // Unit conversions
     static const float Seconds_Per_Cycle = 0.005f;
     static const float Meters_Per_Tick = 0.026f * 2 * M_PI / 6480.0f;
@@ -192,6 +194,10 @@ void USBRadio::send(Packet::RobotsTxPacket& packet) {
     header->address = rtp::BROADCAST_ADDRESS;
     header->type = rtp::header_data::Type::Control;
 
+    auto data_start= (char*)std::next(header, 1);
+    out.copy(data_start, out.size());
+
+    /*
     // Build a forward packet
     for (int slot = 0; slot < 6; ++slot) {
         // Calculate the offset into the @forward_packet for this robot's
@@ -228,11 +234,13 @@ void USBRadio::send(Packet::RobotsTxPacket& packet) {
         }
     }
 
+    */
+
     // Send the forward packet
     int sent = 0;
     int transferRetCode =
         libusb_bulk_transfer(_device, LIBUSB_ENDPOINT_OUT | 2, forward_packet,
-                             sizeof(forward_packet), &sent, Control_Timeout);
+                             forward_size, &sent, Control_Timeout);
     if (transferRetCode != LIBUSB_SUCCESS || sent != sizeof(forward_packet)) {
         fprintf(stderr, "USBRadio: Bulk write failed. sent = %d, size = %lu\n",
                 sent, (unsigned long int)sizeof(forward_packet));
@@ -248,7 +256,6 @@ void USBRadio::send(Packet::RobotsTxPacket& packet) {
             _device = nullptr;
         }
     }
-     */
 }
 
 void USBRadio::receive() {
