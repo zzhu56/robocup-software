@@ -29,7 +29,6 @@
 
 #include "firmware-common/robot2015/cpu/status.h"
 #include "../common/time.hpp"
-#include "../../../../../Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/cstdint"
 
 class SystemState;
 class RobotConfig;
