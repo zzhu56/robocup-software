@@ -11,6 +11,8 @@
 // included for kicer status enum
 #include "firmware-common/robot2015/cpu/status.h"
 
+#include "protobuf/nanopb/RadioRx.pb.h"
+
 using namespace std;
 using namespace Packet;
 
@@ -123,9 +125,9 @@ bool USBRadio::open() {
 
 void USBRadio::rxCompleted(libusb_transfer* transfer) {
     USBRadio* radio = (USBRadio*)transfer->user_data;
-
-    if (transfer->status == LIBUSB_TRANSFER_COMPLETED &&
-        transfer->actual_length == rtp::Reverse_Size) {
+    cout<<"hi"<<transfer->status<<endl;
+    cout<<LIBUSB_TRANSFER_COMPLETED<<endl;
+    if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
         // Parse the packet and add to the list of RadioRx's
         radio->handleRxData(transfer->buffer);
     }
@@ -274,61 +276,83 @@ void USBRadio::receive() {
 
 // Note: this method assumes that sizeof(buf) == rtp::Reverse_Size
 void USBRadio::handleRxData(uint8_t* buf) {
+
+    printf("try?");
     auto packet = RobotRxPacket();
 
     rtp::header_data* header = (rtp::header_data*)buf;
-    rtp::RobotStatusMessage* msg =
-        (rtp::RobotStatusMessage*)(buf + sizeof(rtp::header_data));
+
+
+    auto msgPayload = (char *)(buf + sizeof(rtp::header_data));
+    //const char* end = std::find(msgPayload, msgPayload + Packet_RobotRxPacket_size, '\0');
+    string str_buffer(msgPayload, Packet_RobotRxPacket_size);
+    packet.ParseFromString(str_buffer);
+    //buf.resize(Packet_RobotRxPacket_size);
 
     packet.set_timestamp(RJ::timestamp());
-    packet.set_robot_id(msg->uid);
+    //packet.set_robot_id(msg->uid);
 
-    auto &robotStatusMessage = *packet.mutable_robot_status_message();
+    // auto &robotStatusMessage = *packet.mutable_robot_status_message();
 
-    // Hardware version
-    robotStatusMessage.set_hardware_version(RJ2015);
+    // // Hardware version
+    // robotStatusMessage.set_hardware_version(RJ2015);
 
-    // battery voltage
-    robotStatusMessage.set_battery_level(msg->battVoltage *
-                       rtp::RobotStatusMessage::BATTERY_READING_SCALE_FACTOR);
+    // // battery voltage
+    // robotStatusMessage.set_battery_level(msg->battVoltage *
+    //                    rtp::RobotStatusMessage::BATTERY_READING_SCALE_FACTOR);
 
-    // ball sense
-    if (BallSenseStatus_IsValid(msg->ballSenseStatus)) {
-        robotStatusMessage.set_ball_sense_status(BallSenseStatus(msg->ballSenseStatus));
-    }
+    // // ball sense
+    // if (BallSenseStatus_IsValid(msg->ballSenseStatus)) {
+    //     robotStatusMessage.set_ball_sense_status(BallSenseStatus(msg->ballSenseStatus));
+    // }
 
-    // Using same flags as 2011 robot. See firmware/robot2011/cpu/status.h.
-    // Report that everything is good b/c the bot currently has no way of
-    // detecting kicker issues
-    //robotStatusMessage.set_kicker_status((msg->kickStatus ? Kicker_Charged : 0) |
-    //                         Kicker_Enabled | Kicker_I2C_OK);
-    switch (msg->kickStatus) {
-        case 0:
-            robotStatusMessage.set_kicker_status(KickerStatus::KickerCharging);
-        case 1:
-            robotStatusMessage.set_kicker_status(KickerStatus::KickerCharged);
-        default:
-            robotStatusMessage.set_kicker_status(KickerStatus::UnknownKickerStatus);
-    }
-    auto &motorStatus = *robotStatusMessage.mutable_motor_status();
-    motorStatus.set_motor1(msg->motorErrors & (1 << 1) ? MotorStatus::Hall_Failure
-                                                       : MotorStatus::Good);
-    motorStatus.set_motor2(msg->motorErrors & (1 << 2) ? MotorStatus::Hall_Failure
-                                                       : MotorStatus::Good);
-    motorStatus.set_motor3(msg->motorErrors & (1 << 3) ? MotorStatus::Hall_Failure
-                                                       : MotorStatus::Good);
-    motorStatus.set_motor4(msg->motorErrors & (1 << 4) ? MotorStatus::Hall_Failure
-                                                       : MotorStatus::Good);
+    // // Using same flags as 2011 robot. See firmware/robot2011/cpu/status.h.
+    // // Report that everything is good b/c the bot currently has no way of
+    // // detecting kicker issues
+    // //robotStatusMessage.set_kicker_status((msg->kickStatus ? Kicker_Charged : 0) |
+    // //                         Kicker_Enabled | Kicker_I2C_OK);
+    // switch (msg->kickStatus) {
+    //     case 0:
+    //         robotStatusMessage.set_kicker_status(KickerStatus::KickerCharging);
+    //     case 1:
+    //         robotStatusMessage.set_kicker_status(KickerStatus::KickerCharged);
+    //     default:
+    //         robotStatusMessage.set_kicker_status(KickerStatus::UnknownKickerStatus);
+    // }
+    // auto &motorStatus = *robotStatusMessage.mutable_motor_status();
+    // motorStatus.set_motor1(msg->motorErrors & (1 << 1) ? MotorStatus::Hall_Failure
+    //                                                    : MotorStatus::Good);
+    // motorStatus.set_motor2(msg->motorErrors & (1 << 2) ? MotorStatus::Hall_Failure
+    //                                                    : MotorStatus::Good);
+    // motorStatus.set_motor3(msg->motorErrors & (1 << 3) ? MotorStatus::Hall_Failure
+    //                                                    : MotorStatus::Good);
+    // motorStatus.set_motor4(msg->motorErrors & (1 << 4) ? MotorStatus::Hall_Failure
+    //                                                    : MotorStatus::Good);
 
-    motorStatus.set_dribbler(msg->motorErrors & (1 << 5) ? MotorStatus::Hall_Failure
-                                                         : MotorStatus::Good);
+    // motorStatus.set_dribbler(msg->motorErrors & (1 << 5) ? MotorStatus::Hall_Failure
+    //                                                      : MotorStatus::Good);
 
-    // fpga status
-    if (FpgaStatus_IsValid(msg->fpgaStatus)) {
-        robotStatusMessage.set_fpga_status(FpgaStatus(msg->fpgaStatus));
-    }
+    // // fpga status
+    // if (FpgaStatus_IsValid(msg->fpgaStatus)) {
+    //     robotStatusMessage.set_fpga_status(FpgaStatus(msg->fpgaStatus));
+    // }
 
-    _reversePackets.push_back(packet);
+    // while (_socket.hasPendingDatagrams()) {
+    //     unsigned int n = _socket.pendingDatagramSize();
+    //     string buf;
+    //     buf.resize(n);
+    //     _socket.readDatagram(&buf[0], n);
+
+    //     _reversePackets.push_back(RobotRxPacket());
+    //     auto& packet = _reversePackets.back();
+
+    //     if (!packet.ParseFromString(buf)) {
+    //         printf("Bad radio packet of %d bytes\n", n);
+    //         continue;
+    //     }
+    // }
+
+    _reversePackets.push_back(std::move(packet));
 }
 
 void USBRadio::channel(int n) {
