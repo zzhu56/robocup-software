@@ -8,7 +8,7 @@
 
 // Included for packet layout
 #include "firmware-common/common2015/utils/rtp.hpp"
-
+#include "protobuf/nanopb/RadioRx.pb.h"
 /**
  * @brief Radio IO with real robots
  *
@@ -40,8 +40,9 @@ protected:
     // These transfers are used to receive packets.
     // Try increasing this constant for larger RX packet throughput.
     static const int NumRXTransfers = 4;
+    static const int RxBufferSize = Packet_RobotRxPacket_size;
     libusb_transfer* _rxTransfers[NumRXTransfers];
-    uint8_t _rxBuffers[NumRXTransfers][rtp::Reverse_Size + 2];
+    std::array<std::array<uint8_t, RxBufferSize>, NumRXTransfers> _rxBuffers;
 
     QMutex _mutex;
     bool _printedError;

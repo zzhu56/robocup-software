@@ -109,8 +109,8 @@ bool USBRadio::open() {
             _device,  // handle of the device that will handle the transfer
             LIBUSB_ENDPOINT_IN |
                 2,  // address of the endpoint where this transfer will be sent
-            _rxBuffers[i],      // data buffer
-            rtp::Reverse_Size,  // length of data buffer
+            _rxBuffers[i].data(),      // data buffer
+            RxBufferSize,  // length of data buffer
             rxCompleted,        // callback function to be invoked on transfer
                                 // completion
             this,               // user data to pass to callback function
