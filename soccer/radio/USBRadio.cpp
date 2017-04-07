@@ -12,6 +12,8 @@
 #include "firmware-common/robot2015/cpu/status.h"
 
 #include "protobuf/nanopb/RadioRx.pb.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 using namespace std;
 using namespace Packet;
@@ -114,7 +116,7 @@ bool USBRadio::open() {
             rxCompleted,        // callback function to be invoked on transfer
                                 // completion
             this,               // user data to pass to callback function
-            0);                 // timeout for the transfer in milliseconds
+            100);                 // timeout for the transfer in milliseconds
         libusb_submit_transfer(_rxTransfers[i]);
     }
 
@@ -127,9 +129,10 @@ void USBRadio::rxCompleted(libusb_transfer* transfer) {
     USBRadio* radio = (USBRadio*)transfer->user_data;
     cout<<"hi"<<transfer->status<<endl;
     cout<<LIBUSB_TRANSFER_COMPLETED<<endl;
+    cout<<transfer->actual_length<<endl;
     if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
         // Parse the packet and add to the list of RadioRx's
-        radio->handleRxData(transfer->buffer);
+        radio->handleRxData(transfer->buffer, transfer->actual_length);
     }
 
     // Restart the transfer
@@ -178,8 +181,10 @@ void USBRadio::send(Packet::RobotsTxPacket& packet) {
 
     std::string out;
     packet.SerializeToString(&out);
+    //printf("test");
     const auto forward_size = sizeof(rtp::header_data) + out.size();
     uint8_t forward_packet[forward_size];
+    //printf("%d\n",forward_size);
 
     // ensure Forward_Size is correct
     /*static_assert(sizeof(rtp::header_data) + 6 * sizeof(rtp::ControlMessage) ==
@@ -243,7 +248,7 @@ void USBRadio::send(Packet::RobotsTxPacket& packet) {
     int transferRetCode =
         libusb_bulk_transfer(_device, LIBUSB_ENDPOINT_OUT | 2, forward_packet,
                              forward_size, &sent, Control_Timeout);
-    if (transferRetCode != LIBUSB_SUCCESS || sent != sizeof(forward_packet)) {
+    if (transferRetCode != LIBUSB_SUCCESS || sent != forward_size) {
         fprintf(stderr, "USBRadio: Bulk write failed. sent = %d, size = %lu\n",
                 sent, (unsigned long int)sizeof(forward_packet));
         if (transferRetCode != LIBUSB_SUCCESS)
@@ -275,7 +280,7 @@ void USBRadio::receive() {
 }
 
 // Note: this method assumes that sizeof(buf) == rtp::Reverse_Size
-void USBRadio::handleRxData(uint8_t* buf) {
+void USBRadio::handleRxData(uint8_t* buf, int length) {
 
     printf("try?");
     auto packet = RobotRxPacket();
@@ -285,8 +290,21 @@ void USBRadio::handleRxData(uint8_t* buf) {
 
     auto msgPayload = (char *)(buf + sizeof(rtp::header_data));
     //const char* end = std::find(msgPayload, msgPayload + Packet_RobotRxPacket_size, '\0');
-    string str_buffer(msgPayload, Packet_RobotRxPacket_size);
-    packet.ParseFromString(str_buffer);
+    string str_buffer(msgPayload, length - sizeof(rtp::header_data));
+    cout<<"str_buffer-size:" << str_buffer.size()<<endl; 
+
+    string str;
+    for (auto b: str_buffer) {
+        str += std::to_string((int)b);
+        str += ' ';
+    }
+    printf("string: %s\n", str.c_str());
+
+    auto worked = packet.ParseFromString(str_buffer);
+
+    printf("hasmessage:%d\n", packet.has_robot_status_message());
+    printf("workd:%d\n", worked);
+    printf("uid:%d\n", packet.robot_status_message().uid());
     //buf.resize(Packet_RobotRxPacket_size);
 
     packet.set_timestamp(RJ::timestamp());

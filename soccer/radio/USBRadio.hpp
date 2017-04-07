@@ -40,7 +40,7 @@ protected:
     // These transfers are used to receive packets.
     // Try increasing this constant for larger RX packet throughput.
     static const int NumRXTransfers = 4;
-    static const int RxBufferSize = Packet_RobotRxPacket_size;
+    static const int RxBufferSize = Packet_RobotRxPacket_size*2;
     libusb_transfer* _rxTransfers[NumRXTransfers];
     std::array<std::array<uint8_t, RxBufferSize>, NumRXTransfers> _rxBuffers;
 
@@ -48,7 +48,7 @@ protected:
     bool _printedError;
 
     static void rxCompleted(struct libusb_transfer* transfer);
-    void handleRxData(uint8_t* buf);
+    void handleRxData(uint8_t* buf, int length);
 
     bool open();
 
