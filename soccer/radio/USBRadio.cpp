@@ -199,7 +199,7 @@ void USBRadio::send(Packet::RobotsTxPacket& packet) {
     rtp::header_data* header = (rtp::header_data*)forward_packet;
     header->port = rtp::Port::CONTROL;
     header->address = rtp::BROADCAST_ADDRESS;
-    header->type = rtp::header_data::Type::Control;
+    // header->type = rtp::header_data::Type::Control;
 
     auto data_start= (char*)std::next(header, 1);
     out.copy(data_start, out.size());
