@@ -304,7 +304,6 @@ void USBRadio::handleRxData(uint8_t* buf, int length) {
 
     printf("hasmessage:%d\n", packet.has_robot_status_message());
     printf("workd:%d\n", worked);
-    printf("uid:%d\n", packet.robot_status_message().uid());
     //buf.resize(Packet_RobotRxPacket_size);
 
     packet.set_timestamp(RJ::timestamp());
