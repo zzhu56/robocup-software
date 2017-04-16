@@ -121,6 +121,7 @@ include_directories("${CMAKE_BINARY_DIR}/common") # for generated protobuf heade
 include_directories("${PROJECT_SOURCE_DIR}/external/nanopb") # for headers in common/
 include_directories("${CMAKE_BINARY_DIR}/external/nanopb") # for generated protobuf headers
 
+
 # setup ccache to speed up recompiles.  It's especially useful when switching back and forth
 # between branches where you'd normally have to recompile things many times.
 # see http://stackoverflow.com/questions/1815688/how-to-use-ccache-with-cmake
@@ -135,6 +136,7 @@ set(NANOPB_CPP_PLUGIN "${PROJECT_SOURCE_DIR}/external/nanopb/generator/protoc-ge
 
 add_subdirectory(external/nanopb)
 add_subdirectory(common)
+add_subdirectory(external)
 add_subdirectory(soccer)
 add_subdirectory(simulator)
 add_subdirectory(logging)
