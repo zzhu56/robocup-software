@@ -33,6 +33,23 @@ void SimRadio::send(Packet::RobotsTxPacket& packet) {
     std::string out;
     //google::protobuf::io::StringOutputStream stream(&out);
     //google::protobuf::io::GzipOutputStream gzip(&stream);
+    google::protobuf::io::StringOutputStream stream(&out);
+
+    auto options = google::protobuf::io::GzipOutputStream::Options();
+    options.format = google::protobuf::io::GzipOutputStream::ZLIB;
+    // options.compression_level = 9;
+    google::protobuf::io::GzipOutputStream gzip(&stream, options);
+    packet.SerializeToZeroCopyStream(&gzip);
+
+    
+
+    cout<<"test"<<gzip.ByteCount()<<endl;
+
+    gzip.Close();
+    cout<<"test1:"<<out.size()<<endl;
+
+
+
     packet.SerializeToString(&out);
 
     /*
