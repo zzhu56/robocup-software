@@ -12,6 +12,8 @@
 #include "firmware-common/robot2015/cpu/status.h"
 
 #include "protobuf/nanopb/RadioRx.pb.h"
+#include <google/protobuf/io/gzip_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -179,8 +181,28 @@ void USBRadio::send(Packet::RobotsTxPacket& packet) {
         }
     }
 
+    for (int i=0; i<5; i++) {
+        auto robot = packet.add_robots();
+        *robot = packet.robots(0);
+        robot->mutable_control();
+    }
     std::string out;
-    packet.SerializeToString(&out);
+
+    google::protobuf::io::StringOutputStream stream(&out);
+
+    auto options = google::protobuf::io::GzipOutputStream::Options();
+    options.format = google::protobuf::io::GzipOutputStream::ZLIB;
+    // options.compression_level = 9;
+    google::protobuf::io::GzipOutputStream gzip(&stream, options);
+    packet.SerializeToZeroCopyStream(&gzip);
+
+    cout<<"test"<<gzip.ByteCount()<<endl;
+
+    gzip.Close();
+    cout<<"test1:"<<out.size()<<endl;
+
+
+
     //printf("test");
     const auto forward_size = sizeof(rtp::header_data) + out.size();
     uint8_t forward_packet[forward_size];
