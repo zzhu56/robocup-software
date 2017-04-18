@@ -21,4 +21,4 @@
 	url = https://github.com/gabomdq/SDL_GameControllerDB.git
 [submodule "external/nanopb"]
 	path = external/nanopb
-	url = git@github.com:ashaw596/nanopb.git
+	url = https://github.com/ashaw596/nanopb.git
