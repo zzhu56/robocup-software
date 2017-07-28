@@ -172,6 +172,10 @@ class Goalie(single_robot_composite_behavior.SingleRobotCompositeBehavior):
         self.remove_subbehavior('intercept')
 
     def execute_block(self):
+        # if we don't have a robot, we can't do anything
+        if self.robot is None:
+            return
+
         opposing_kicker = evaluation.ball.opponent_with_ball()
         if opposing_kicker is not None:
             winEval = robocup.WindowEvaluator(main.system_state())
