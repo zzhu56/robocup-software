@@ -243,8 +243,9 @@ void MainWindow::initialize() {
     }
 
     updateTimer.setSingleShot(true);
+    updateTimer.setInterval((1000ms/60).count());
     connect(&updateTimer, SIGNAL(timeout()), SLOT(updateViews()));
-    updateTimer.start(30);
+    updateTimer.start();
 
     _autoExternalReferee = _processor->externalReferee();
 
@@ -794,7 +795,7 @@ void MainWindow::updateViews() {
     // We restart this timer repeatedly instead of using a single shot timer in
     // order to guarantee a minimum time between redraws.  This will limit the
     // CPU usage on a fast computer.
-    updateTimer.start(20);
+    updateTimer.start();
 }
 
 void MainWindow::updateStatus() {
