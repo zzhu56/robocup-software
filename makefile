@@ -29,6 +29,10 @@ all-perf:
 	$(call cmake_build_target_perf, all)
 perf: all-perf
 
+perf-record-sim:
+	$(call cmake_build_target_perf, soccer)
+	sudo perf record -g ./run/soccer -sim
+
 run: all
 	./run/soccer
 run-comp:

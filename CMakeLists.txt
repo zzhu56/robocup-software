@@ -36,6 +36,7 @@ endif()
 
 # Use compiler optimization if we are making a release build.
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -march=native")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -O2 -g")
 
 # Build in debug mode
 # TODO: make this easier to specify when running `make` on the command-line
