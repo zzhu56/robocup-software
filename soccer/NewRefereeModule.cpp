@@ -9,6 +9,7 @@
 #include <QMutexLocker>
 #include <QUdpSocket>
 #include <stdexcept>
+#include <thread>
 
 namespace NewRefereeModuleEnums {
 std::string stringFromStage(Stage s) {
@@ -110,7 +111,9 @@ NewRefereeModule::NewRefereeModule(SystemState& state)
     : stage(NORMAL_FIRST_HALF_PRE),
       command(HALT),
       _running(false),
-      _state(state) {}
+      _state(state) {
+    this->setObjectName("NewRefereeModule");
+}
 
 NewRefereeModule::~NewRefereeModule() { this->stop(); }
 
@@ -139,7 +142,10 @@ void NewRefereeModule::run() {
 
     _running = true;
     while (_running) {
-        if (!_useExternalRef) continue;
+        if (!_useExternalRef) {
+            this->msleep(100);
+            continue;
+        };
 
         char buf[65536];
 

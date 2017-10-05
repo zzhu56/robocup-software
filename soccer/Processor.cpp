@@ -68,6 +68,8 @@ Processor::Processor(bool sim, bool defendPlus, VisionChannel visionChannel)
     _simulation = sim;
     _radio = nullptr;
 
+    this->setObjectName("Processor");
+
     // joysticks
     _joysticks.push_back(new GamepadController());
     _joysticks.push_back(new SpaceNavJoystick());

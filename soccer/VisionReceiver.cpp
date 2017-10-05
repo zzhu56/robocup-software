@@ -10,7 +10,9 @@
 using namespace std;
 
 VisionReceiver::VisionReceiver(bool sim, int port)
-    : simulation(sim), _running(false), port(port) {}
+    : simulation(sim), _running(false), port(port) {
+    this->setObjectName("VisionReceiver");
+}
 
 void VisionReceiver::stop() {
     if (isRunning()) {
