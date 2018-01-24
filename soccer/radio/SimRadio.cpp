@@ -43,8 +43,8 @@ void SimRadio::send(Packet::RadioTx& packet) {
         const float max_kick_m_s = 7.0f;
 
         const float kc_strength_to_ms = (max_kick_m_s - min_kick_m_s) / 255;
-        uint kick_strength =
-            kc_strength_to_ms * robot.control().kcstrength() + min_kick_m_s;
+        uint kick_strength = 5;
+            //kc_strength_to_ms * robot.control().kcstrength() + min_kick_m_s;
         switch (robot.control().shootmode()) {
             case Packet::Control::KICK:
                 simRobot->set_kickspeedx(kick_strength);
