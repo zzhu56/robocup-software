@@ -26,6 +26,7 @@ class TestKicker(play.Play):
         self.max_timer = 10 # When to print out everything
         self.timer_start = False
         self.already_printed = False
+        self.cached_shot_point = None
 
     def execute_running(self):
         kick = self.subbehavior_with_name('kick')
@@ -46,13 +47,26 @@ class TestKicker(play.Play):
             self.timer = 0
             self.timer_start = False
             self.already_printed = True
+
+        if kick.state == skills.pivot_kick.PivotKick.State.kicking:
+            print("kicking now")
+
+        if main.ball().pos.y < 0.1:
+            print("low y value")
+
+        if kick.current_shot_point() is not None:
+            self.cached_shot_point = kick.current_shot_point()
+
         self.printKickInfo(kick)
 
 
     def printKickInfo(self, kick):
-        ball_vel = main.ball().vel
-        ball_dir = main.ball().pos - kick.robot.pos
+        if kick and kick.robot and self.cached_shot_point:
+            ball_vel = main.ball().vel
+            ball_dir = main.ball().pos - kick.robot.pos
 
-        angle_error = ball_dir.angle_between(constants.Field.OurGoalSegment.center() - kick.robot.pos)
+            angle_error = ball_dir.angle_between(self.cached_shot_point - kick.robot.pos)
 
-        print(str(ball_vel.mag()) + " m/s with the angle error " + str(angle_error * 180 / 3.14159))
+            print(str(ball_vel.mag()) + " m/s with the angle error " + str(angle_error * 180 / 3.14159))
+        else:
+            print("no robot assigned")
