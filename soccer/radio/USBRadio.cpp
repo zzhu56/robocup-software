@@ -362,6 +362,13 @@ void USBRadio::handleRxData(uint8_t* buf) {
                              (msg->kickHealthy ? Kicker_Enabled : 0) |
                              Kicker_I2C_OK);
 
+    printf("%d, %d, %d, %d, %d, %d, %d, %d, %d, %d\n",
+            msg->wheel_enc_deltas[0], msg->wheel_enc_deltas[1],
+            msg->wheel_enc_deltas[2], msg->wheel_enc_deltas[3],
+            msg->wheel_duty_cycles[0], msg->wheel_duty_cycles[1],
+            msg->wheel_duty_cycles[2], msg->wheel_duty_cycles[3],
+            msg->enc_deltas_time, msg->gyro_w);
+
     // motor errors
     for (int i = 0; i < 5; i++) {
         bool err = msg->motorErrors & (1 << i);
