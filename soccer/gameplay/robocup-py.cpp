@@ -178,6 +178,13 @@ bool OurRobot_end_pid_tuner(OurRobot* self, char controller) {
     return self->motionControl()->getPid(controller)->endTunerCycle();
 }
 
+void OurRobot_set_motion_control_mode(OurRobot* self, mc_mode m) {
+    self->motionControl()->setMode(m);
+}
+void OurRobot_set_step(OurRobot* self, float x, float y, float w) {
+    self->motionControl()->setStep(x, y, w);
+}
+
 bool Rect_contains_rect(Geometry2d::Rect* self, Geometry2d::Rect* other) {
     if (other == nullptr) throw NullArgumentException("other");
     return self->containsRect(*other);
@@ -639,6 +646,10 @@ BOOST_PYTHON_MODULE(robocup) {
     def("fix_angle_radians", &fixAngleRadians);
     def("get_trapezoidal_time", &Trapezoidal::getTime);
 
+    enum_<mc_mode>("mc_mode")
+        .value("PID", PID)
+        .value("STEP", STEP);
+
     class_<Geometry2d::Point, Geometry2d::Point*>("Point", init<float, float>())
         .def(init<const Geometry2d::Point&>())
         .add_property("x", &Point_get_x, &Point_set_x)
@@ -821,6 +832,8 @@ BOOST_PYTHON_MODULE(robocup) {
         .def("start_pid_tuner", &OurRobot_start_pid_tuner)
         .def("run_pid_tuner", &OurRobot_run_pid_tuner)
         .def("end_pid_tuner", &OurRobot_end_pid_tuner)
+        .def("set_motion_control_mode", &OurRobot_set_motion_control_mode)
+        .def("set_step", &OurRobot_set_step)
         .def_readwrite("is_penalty_kicker", &OurRobot::isPenaltyKicker)
         .def_readwrite("is_ball_placer", &OurRobot::isBallPlacer);
 

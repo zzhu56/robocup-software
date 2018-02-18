@@ -1,5 +1,6 @@
 import single_robot_behavior
 import behavior
+import role_assignment
 
 
 ## Behavior that moves a robot to a specified location
@@ -46,7 +47,18 @@ class Move(single_robot_behavior.SingleRobotBehavior):
         if self.pos != None:
             self.robot.move_to(self.pos)
 
+
     def role_requirements(self):
         reqs = super().role_requirements()
-        reqs.destination_shape = self.pos
+
+        for req in role_assignment.iterate_role_requirements_tree_leaves(reqs):
+            req.required_shell_id = self.shell_id if self.shell_id != None else -1
         return reqs
+
+    @property
+    def shell_id(self):
+        return self._shell_id
+
+    @shell_id.setter
+    def shell_id(self, value):
+        self._shell_id = value

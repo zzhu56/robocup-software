@@ -7,6 +7,8 @@
 
 class OurRobot;
 
+enum mc_mode {PID = 1, STEP = 2};
+
 /**
  * @brief Handles computer-side motion control
  * @details This class handles the details of creating velocity commands for a
@@ -39,6 +41,9 @@ public:
      */
     Pid* getPid(char controller);
 
+    void setMode(mc_mode m);
+    void setStep(float x, float y, float w);
+
     static void createConfiguration(Configuration* cfg);
 
 private:
@@ -50,6 +55,11 @@ private:
     /// sets the target angle velocity in the robot's radio packet
     /// does velocity limiting and conversion
     void _targetAngleVel(float angleVel);
+
+    mc_mode mode;
+    float stepX;
+    float stepY;
+    float stepW;
 
     OurRobot* _robot;
 
