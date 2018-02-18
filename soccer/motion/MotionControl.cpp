@@ -6,6 +6,8 @@
 #include <Utils.hpp>
 #include <planning/MotionInstant.hpp>
 #include "TrapezoidalMotion.hpp"
+#include <Constants.hpp>
+#include <iostream>
 
 #include <stdio.h>
 #include <algorithm>
@@ -30,7 +32,7 @@ void MotionControl::createConfiguration(Configuration* cfg) {
 #pragma mark MotionControl
 
 MotionControl::MotionControl(OurRobot* robot)
-    : _angleController(0, 0, 0, 50, 0) {
+    : _angleController(0, 0, 0, 50, 0), mode(mc_mode::PID), stepX(0), stepY(0), stepW(0) {
     _robot = robot;
 
     _robot->robotPacket.set_uid(_robot->shell());
@@ -103,7 +105,11 @@ void MotionControl::run() {
     }
 
     if (!targetAngleFinal) {
-        _targetAngleVel(0);
+        if (mode == mc_mode::STEP) {
+            _targetAngleVel(stepW);
+        } else {
+            _targetAngleVel(0);
+        }        
     } else {
         float angleError = fixAngleRadians(*targetAngleFinal - _robot->angle);
 
@@ -124,6 +130,7 @@ void MotionControl::run() {
         _robot->addText(QString("targetGlobalAngle: %1").arg(targetAngleFinal));
         _robot->addText(QString("angle: %1").arg(_robot->angle));
         */
+
         _targetAngleVel(targetW);
     }
 
@@ -183,6 +190,10 @@ void MotionControl::run() {
 
     _lastWorldVelCmd = target.vel;
     _lastCmdTime = RJ::now();
+
+    if (mode == mc_mode::STEP) {
+        target.vel = Point(stepX, stepY);
+    }
 
     // convert from world to body coordinates
     // the +y axis of the robot points forwards
@@ -254,4 +265,14 @@ Pid* MotionControl::getPid(char controller) {
         default:
             return &_positionXController;
     }
+}
+
+void MotionControl::setMode(mc_mode m) {
+    mode = m;
+}
+
+void MotionControl::setStep(float x, float y, float w) {
+    stepX = x;
+    stepY = y;
+    stepW = w;
 }
