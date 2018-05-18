@@ -5,6 +5,34 @@
 
 #include <Configuration.hpp>
 
+
+struct RobotMeasure {
+
+    enum class Type {
+        VISION,
+        ENCODER
+    };
+
+    Geometry2d::Point pos;
+    float angle;
+    Type type; 
+};
+
+class Filter {
+    virtual void handle_measurement(const RobotMeasure& msr) = 0;
+    virtual void is_valid() = 0;
+};
+
+// class VisEncFilter : Filter {
+    // virtual void handle_measurement(const RobotMeasure& msr) override;
+    // virtual void is_valid(const RobotMeasure& msr) override;
+// }
+
+class VisFilter : Filter{
+    virtual void handle_measurement(const RobotMeasure& msr);
+    virtual void is_valid(const RobotMeasure& msr);
+};
+
 /**
  * @brief An observation of a robot's position and angle at a certain time
  *

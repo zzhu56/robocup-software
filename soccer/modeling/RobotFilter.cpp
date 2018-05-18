@@ -16,6 +16,14 @@ REGISTER_CONFIGURABLE(RobotFilter);
 
 ConfigDouble* RobotFilter::_velocity_alpha;
 
+void VisFilter::handle_measurement(const RobotMeasure& msr) {
+
+}
+
+void VisFilter::is_valid(const RobotMeasure& msr) {
+
+}
+
 RobotFilter::RobotFilter() {}
 
 void RobotFilter::createConfiguration(Configuration* cfg) {

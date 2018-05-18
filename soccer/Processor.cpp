@@ -425,10 +425,6 @@ void Processor::run() {
         }
         GamepadController::joystickRemoved = -1;
 
-        runModels(detectionFrames);
-        for (VisionPacket* packet : visionPackets) {
-            delete packet;
-        }
 
         // Log referee data
         vector<NewRefereePacket*> refereePackets;
@@ -531,6 +527,15 @@ void Processor::run() {
         // Visualize obstacles
         for (auto& shape : globalObstacles.shapes()) {
             _state.drawShape(shape, Qt::black, "Global Obstacles");
+        }
+
+        for (OurRobot* r : _state.self) {
+            auto radioRx = r->radioRx();
+            auto enc = radioRx.encoders();
+        }
+        runModels(detectionFrames);
+        for (VisionPacket* packet : visionPackets) {
+            delete packet;
         }
 
         // Run velocity controllers
