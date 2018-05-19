@@ -433,15 +433,19 @@ void Processor::run() {
                     constexpr auto ENC_TICKS_PER_TURN = 2048 * 3;
                     encoders *= 2.0 * M_PI / ENC_TICKS_PER_TURN / dt;
 
-                    auto res = w2b*encoders * dt;
+                    auto res = w2b*encoders;
 
                     // auto x = res.coeff(0,0);
                     auto x = res(0,0);
                     auto y = res(1,0);
                     auto ang = res(2,0);
+                    
+                    Geometry2d::Point pt(x, y);
+                    pt = pt.rotated(-(M_PI_2 - bot.angle));
 
-                    bot.pos.x() += x;
-                    bot.pos.y() += y;
+                    bot.pos.x() += pt.x() * dt;
+                    bot.pos.y() += pt.y() * dt;
+                    bot.angle += ang * dt;
 
                     bot.visible = true;
 
