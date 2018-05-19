@@ -3,6 +3,7 @@
 #include <poll.h>
 #include <QMutexLocker>
 
+#include <rc-fshare/robot_model.hpp>
 #include <protobuf/RadioRx.pb.h>
 #include <protobuf/RadioTx.pb.h>
 #include <protobuf/messages_robocup_ssl_detection.pb.h>
@@ -418,6 +419,34 @@ void Processor::run() {
                 // reused).
                 _state.self[board]->setRadioRx(rx);
                 _state.self[board]->radioRxUpdated();
+
+
+                if (board == 1) {
+                    auto& bot = *_state.self[board];
+
+                    const auto w2b = RobotModelControl.WheelToBot;
+
+                    Eigen::MatrixXd encoders(4,1);
+                    encoders << rx.encoders(0), rx.encoders(1), rx.encoders(2), rx.encoders(3);
+
+                    constexpr auto dt = 1/60.0;
+                    constexpr auto ENC_TICKS_PER_TURN = 2048 * 3;
+                    encoders *= 2.0 * M_PI / ENC_TICKS_PER_TURN / dt;
+
+                    auto res = w2b*encoders * dt;
+
+                    // auto x = res.coeff(0,0);
+                    auto x = res(0,0);
+                    auto y = res(1,0);
+                    auto ang = res(2,0);
+
+                    bot.pos.x() += x;
+                    bot.pos.y() += y;
+
+                    bot.visible = true;
+
+                    printf("robot x, y, ang: %f, %f, %f\n", bot.pos.x(), bot.pos.y(), bot.angle);
+                }
             }
         }
         _radio->clear();
@@ -425,7 +454,6 @@ void Processor::run() {
             joystick->update();
         }
         GamepadController::joystickRemoved = -1;
-
 
         // Log referee data
         vector<NewRefereePacket*> refereePackets;

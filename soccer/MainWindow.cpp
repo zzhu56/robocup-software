@@ -671,6 +671,7 @@ void MainWindow::updateViews() {
 
             // vision status
             bool hasVision = robot->visible;
+            hasVision = true;
             statusWidget->setHasVision(hasVision);
 
             // build a list of errors to display in the widget
