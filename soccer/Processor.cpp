@@ -27,6 +27,7 @@
 #include "modeling/BallTracker.hpp"
 #include "radio/SimRadio.hpp"
 #include "radio/USBRadio.hpp"
+#include <fstream>
 
 REGISTER_CONFIGURABLE(Processor)
 
@@ -271,6 +272,10 @@ void Processor::runModels(
 void Processor::run() {
     Status curStatus;
 
+    std::ofstream encoder_vis_log;
+    encoder_vis_log.open("enc_vis.txt"); // , std::ios::out);
+
+    encoder_vis_log << "bot_id x y ang enc0 enc1 enc2 enc3" << std::endl;
     bool first = true;
     // main loop
     while (_running) {
@@ -331,6 +336,7 @@ void Processor::run() {
             robot->status = robotStatuses.at(robot->shell());
         }
 
+        bool set_vision = false;
         ////////////////
         // Inputs
 
@@ -384,6 +390,17 @@ void Processor::run() {
                 for (int team = 0; team < 2; ++team) {
                     for (int i = 0; i < robots[team]->size(); ++i) {
                         float x = robots[team]->Get(i).x();
+
+                        if (!set_vision) {
+                            set_vision = true;
+                            encoder_vis_log
+                                // << RJ::TimestampToSecs(RJ::timestamp(RJ::now())) << " "
+                                << robots[team]->Get(i).robot_id() << " "
+                                << robots[team]->Get(i).x() << " "
+                                << robots[team]->Get(i).y() << " "
+                                << robots[team]->Get(i).orientation() << " ";
+                        }
+
                         if ((!_state.logFrame->use_opponent_half() &&
                              ((_defendPlusX && x < 0) ||
                               (!_defendPlusX && x > 0))) ||
@@ -420,36 +437,45 @@ void Processor::run() {
                 _state.self[board]->setRadioRx(rx);
                 _state.self[board]->radioRxUpdated();
 
-
-                if (board == 1) {
+                if (board == 6) {
                     auto& bot = *_state.self[board];
 
-                    const auto w2b = RobotModelControl.WheelToBot;
+                    // const auto w2b = RobotModelControl.WheelToBot;
 
                     Eigen::MatrixXd encoders(4,1);
                     encoders << rx.encoders(0), rx.encoders(1), rx.encoders(2), rx.encoders(3);
 
-                    constexpr auto dt = 1/60.0;
-                    constexpr auto ENC_TICKS_PER_TURN = 2048 * 3;
-                    encoders *= 2.0 * M_PI / ENC_TICKS_PER_TURN / dt;
+                    // constexpr auto dt = 1/60.0;
+                    // constexpr auto ENC_TICKS_PER_TURN = 2048 * 3;
+                    // encoders *= 2.0 * M_PI / ENC_TICKS_PER_TURN / dt;
 
-                    auto res = w2b*encoders;
+                    // auto res = w2b*encoders;
 
                     // auto x = res.coeff(0,0);
-                    auto x = res(0,0);
-                    auto y = res(1,0);
-                    auto ang = res(2,0);
-                    
-                    Geometry2d::Point pt(x, y);
-                    pt = pt.rotated(-(M_PI_2 - bot.angle));
+                    // auto x = res(0,0);
+                    // auto y = res(1,0);
+                    // auto ang = res(2,0);
 
-                    bot.pos.x() += pt.x() * dt;
-                    bot.pos.y() += pt.y() * dt;
-                    bot.angle += ang * dt;
+                    // Geometry2d::Point pt(x, y);
+                    // pt = pt.rotated(-(M_PI_2 - bot.angle));
 
-                    bot.visible = true;
+                    // bot.pos.x() += pt.x() * dt;
+                    // bot.pos.y() += pt.y() * dt;
+                    // bot.angle += ang * dt;
 
-                    printf("robot x, y, ang: %f, %f, %f\n", bot.pos.x(), bot.pos.y(), bot.angle);
+                    //bot.visible = true;
+                    // printf("%6f %6f %6f %d %d %d %d\n", bot.pos.x(), bot.pos.y(),
+                    //         bot.angle, rx.encoders(0), rx.encoders(1),
+                    //         rx.encoders(2), rx.encoders(3));
+
+                    if (set_vision) {
+                        encoder_vis_log
+                            << rx.encoders(0) << " "
+                            << rx.encoders(1) << " "
+                            << rx.encoders(2) << " "
+                            << rx.encoders(3) << std::endl;
+                    }
+                    //printf("robot x, y, ang: %f, %f, %f\n", bot.pos.x(), bot.pos.y(), bot.angle);
                 }
             }
         }
