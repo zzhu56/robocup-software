@@ -1,6 +1,5 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.1)
 project("GT RoboJackets RoboCup")
-
 
 # include cmake files in the 'cmake folder'
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
@@ -18,7 +17,6 @@ message("${TARGET}")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON) # Don't fall back to older versions
 
-add_subdirectory(external/grSim)
 
 # Because we use ninja, we have to explicitly turn on color output for the compiler
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
@@ -130,3 +128,4 @@ add_subdirectory(external)
 add_subdirectory(common)
 add_subdirectory(soccer)
 add_subdirectory(logging)
+

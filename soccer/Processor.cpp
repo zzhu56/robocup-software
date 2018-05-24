@@ -440,30 +440,29 @@ void Processor::run() {
                 if (board == 6) {
                     auto& bot = *_state.self[board];
 
-                    // const auto w2b = RobotModelControl.WheelToBot;
+                    const auto w2b = RobotModelControl.WheelToBot;
 
                     Eigen::MatrixXd encoders(4,1);
                     encoders << rx.encoders(0), rx.encoders(1), rx.encoders(2), rx.encoders(3);
 
-                    // constexpr auto dt = 1/60.0;
-                    // constexpr auto ENC_TICKS_PER_TURN = 2048 * 3;
-                    // encoders *= 2.0 * M_PI / ENC_TICKS_PER_TURN / dt;
+                    constexpr auto dt = 1/60.0;
+                    constexpr auto ENC_TICKS_PER_TURN = 2048 * 3;
+                    encoders *= 2.0 * M_PI / ENC_TICKS_PER_TURN / dt;
 
-                    // auto res = w2b*encoders;
+                    auto res = w2b*encoders;
 
-                    // auto x = res.coeff(0,0);
-                    // auto x = res(0,0);
-                    // auto y = res(1,0);
-                    // auto ang = res(2,0);
+                    auto x = res(0,0);
+                    auto y = res(1,0);
+                    auto ang = res(2,0);
 
-                    // Geometry2d::Point pt(x, y);
-                    // pt = pt.rotated(-(M_PI_2 - bot.angle));
+                    Geometry2d::Point pt(x, y);
+                    pt = pt.rotated(-(M_PI_2 - bot.angle));
 
-                    // bot.pos.x() += pt.x() * dt;
-                    // bot.pos.y() += pt.y() * dt;
-                    // bot.angle += ang * dt;
+                    bot.pos.x() += pt.x() * dt;
+                    bot.pos.y() += pt.y() * dt;
+                    bot.angle += ang * dt;
 
-                    //bot.visible = true;
+                    bot.visible = true;
                     // printf("%6f %6f %6f %d %d %d %d\n", bot.pos.x(), bot.pos.y(),
                     //         bot.angle, rx.encoders(0), rx.encoders(1),
                     //         rx.encoders(2), rx.encoders(3));

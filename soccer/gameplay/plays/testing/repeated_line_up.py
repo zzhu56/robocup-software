@@ -36,7 +36,7 @@ class RepeatedLineUp(play.Play):
     # x_multiplier is a 1 or -1 to indicate which side of the field to be on
     # 1 is right, -1 is left
     def generate_line(self, x_multiplier):
-        x = (constants.Field.Width / 2 - constants.Robot.Radius * 2
+        x = (constants.Field.Width / 2 - constants.Robot.Radius * 20
              ) * x_multiplier
         y_start = 1.0
         line = robocup.Segment(
