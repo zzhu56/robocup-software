@@ -395,7 +395,7 @@ void Processor::run() {
                             set_vision = true;
                             encoder_vis_log
                                 // << RJ::TimestampToSecs(RJ::timestamp(RJ::now())) << " "
-                                << robots[team]->Get(i).robot_id() << " "
+                                // << robots[team]->Get(i).robot_id() << " "
                                 << robots[team]->Get(i).x() << " "
                                 << robots[team]->Get(i).y() << " "
                                 << robots[team]->Get(i).orientation() << " ";
@@ -473,7 +473,7 @@ void Processor::run() {
                             << rx.encoders(0) << " "
                             << rx.encoders(1) << " "
                             << rx.encoders(2) << " "
-                            << rx.encoders(3) << std::endl;
+                            << rx.encoders(3) << " ";
                     }
                     //printf("robot x, y, ang: %f, %f, %f\n", bot.pos.x(), bot.pos.y(), bot.angle);
                 }
@@ -606,8 +606,14 @@ void Processor::run() {
                 } else {
                     robot->motionControl()->run();
                 }
+
+                encoder_vis_log
+                    << robot->control->xvelocity() << " "
+                    << robot->control->yvelocity() << " "
+                    << robot->control->avelocity() << std::endl;
             }
         }
+
 
         ////////////////
         // Store logging information
