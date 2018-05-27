@@ -421,7 +421,7 @@ void Processor::run() {
                 _state.self[board]->radioRxUpdated();
 
 
-                if (board == 1) {
+                if (board == 4) {
                     auto& bot = *_state.self[board];
 
                     const auto w2b = RobotModelControl.WheelToBot;
