@@ -3,6 +3,9 @@
 #include <Robot.hpp>
 #include <array>
 
+#include <rc-fshare/robot_model.hpp>
+#include <Eigen/Dense>
+
 #include <Configuration.hpp>
 
 /**
@@ -44,13 +47,21 @@ public:
  */
 class RobotFilter {
 public:
+    // Vision Related
     static constexpr int Num_Cameras = 4;
+
+    // Encoder related
+    static constexpr int Frame_Delay = 6;
+    uint64_t last_rx_timestamp;
+    std::vector<RobotModel::EncReading> enc_reading_buf;
+    RobotModel::EncReading enc_reading_sum;
 
     RobotFilter();
 
     /// Gives a new observation to the filter
     void update(const std::array<RobotObservation, Num_Cameras>& obs,
-                RobotPose* robot, RJ::Time currentTime, u_int32_t frameNumber);
+                RobotPose* robot, RJ::Time currentTime, uint32_t frameNumber,
+                boost::optional<Packet::RadioRx> bots_latest_rx = boost::none);
 
     static void createConfiguration(Configuration* cfg);
 

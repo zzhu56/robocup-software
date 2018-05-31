@@ -16,7 +16,11 @@ REGISTER_CONFIGURABLE(RobotFilter);
 
 ConfigDouble* RobotFilter::_velocity_alpha;
 
-RobotFilter::RobotFilter() {}
+RobotFilter::RobotFilter()
+    : last_rx_timestamp(0)
+{
+        enc_reading_sum << 0, 0, 0, 0;
+}
 
 void RobotFilter::createConfiguration(Configuration* cfg) {
     _velocity_alpha = new ConfigDouble(cfg, "RobotFilter/Velocity_Alpha", 0.2);
@@ -24,7 +28,33 @@ void RobotFilter::createConfiguration(Configuration* cfg) {
 
 void RobotFilter::update(
     const std::array<RobotObservation, Num_Cameras>& observations,
-    RobotPose* robot, RJ::Time currentTime, u_int32_t frameNumber) {
+    RobotPose* robot, RJ::Time currentTime, uint32_t frameNumber,
+    boost::optional<Packet::RadioRx> bots_latest_rx) {
+
+    // if we have rx, update rx sum and buffer
+    if (bots_latest_rx && bots_latest_rx->timestamp() != last_rx_timestamp) {
+        const auto& rx = *bots_latest_rx;
+        std::cout << "Have new rx in robot filter!" << rx.timestamp() << std::endl;
+        last_rx_timestamp = rx.timestamp();
+
+        // Check we have encoders
+        if (rx.encoders().size() == 4) {
+            if (enc_reading_buf.size() == Frame_Delay) {
+                enc_reading_sum -= *enc_reading_buf.begin();
+                enc_reading_buf.erase(enc_reading_buf.begin());
+            }
+
+            RobotModel::EncReading read;
+            read << rx.encoders()[0],
+                    rx.encoders()[1],
+                    rx.encoders()[2],
+                    rx.encoders()[3];
+
+            enc_reading_buf.push_back(read);
+            enc_reading_sum += read;
+        }
+    }
+
     bool anyValid =
         std::any_of(observations.begin(), observations.end(),
                     [](const RobotObservation& obs) { return obs.valid; });
@@ -145,6 +175,27 @@ void RobotFilter::update(
     }
 
     if (currentTime - _currentEstimate.time < Vision_Timeout_Time) {
+        // hacking in encoder readings here, this may need to move
+        // _currentEstimate.angle, vision estimated angle
+        // _currentEstimate.vel, vision estimated velocity
+        // _currentEstimate.pos, vision estimate pos
+        // encoders will only provide a possibly better position/angle estimate
+
+        Eigen::Matrix<double, 3, 1> vision_pos;
+        vision_pos << _currentEstimate.pos.x(),
+                      _currentEstimate.pos.y(),
+                      _currentEstimate.angle;
+
+        auto enc_delta_bdy_rel = RobotModel::get().EncToBot * enc_reading_sum.cast<double>();
+
+        Point delta_bdy_rel_pos(enc_delta_bdy_rel[0,0], enc_delta_bdy_rel[1,0]);
+        auto world_delta = delta_bdy_rel_pos.rotated(-M_PI / 2 + _currentEstimate.angle);
+
+        _currentEstimate.pos += world_delta;
+        _currentEstimate.angle += enc_delta_bdy_rel[2,0];
+
+        std::cout << "Adding position delta: " << world_delta << std::endl;
+
         *robot = _currentEstimate;
     } else {
         robot->visible = false;
