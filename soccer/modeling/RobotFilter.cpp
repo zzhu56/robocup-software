@@ -45,10 +45,10 @@ void RobotFilter::update(
             }
 
             RobotModel::EncReading read;
-            read << rx.encoders()[0],
-                    rx.encoders()[1],
-                    rx.encoders()[2],
-                    rx.encoders()[3];
+            read << rx.encoders().Get(0),
+                    rx.encoders().Get(1),
+                    rx.encoders().Get(2),
+                    rx.encoders().Get(3);
 
             enc_reading_buf.push_back(read);
             enc_reading_sum += read;
