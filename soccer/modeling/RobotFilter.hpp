@@ -71,4 +71,5 @@ private:
     RobotPose _currentEstimate;
 
     static ConfigDouble* _velocity_alpha;
+    static ConfigInt* _vis_frame_delay;
 };
