@@ -23,10 +23,9 @@ RobotFilter::RobotFilter()
         enc_reading_sum << 0, 0, 0, 0;
 	log_file.open("enc_vis_filter.csv");
 
-        log_file << "avg_pos.x() avg_pos.y() avg_ang "
-                 << "_currentEstimate.pos.x() _currentEstimate.pos.y() _currentEstimate.angle "
-                 << "enc[0] enc[1] enc[2] enc[3] "
-                 << "enc_reading_sum[0] enc_reading_sum[1] enc_reading_sum[2] enc_reading_sum[3]"
+        log_file << "vis_avg_x vis_avg_y vis_avg_ang est_x est_y "
+                 << "est_ang enc0 enc1 enc2 enc3 run_enc0 run_enc1 "
+                 << "run_enc2 run_enc3"
                  << std::endl;
 }
 
@@ -77,89 +76,27 @@ void RobotFilter::update(
                     [](const RobotObservation& obs) { return obs.valid; });
 
     std::size_t pos_cnt = 0;
-    Point avg_pos(0, 0);
+    Point avg_pos = _currentEstimate.pos; // if we don't have any valid, use previous
     double avg_ang = 0;
 
     if (anyValid) {
         for (int i = 0; i < observations.size(); i++) {
             const auto& obs = observations[i];
-            auto& estimate = _estimates[i];
-            if (obs.valid && obs.pos.x() != 0) {
+            if (obs.valid) {
 		avg_pos += obs.pos;
 		avg_ang += obs.angle;
 		pos_cnt++;
-
-		/*
-                Point velEstimate{};
-                double angleVelEstimate = 0;
-
-                const auto dtime = RJ::Seconds(obs.time - estimate.time);
-                if (dtime < Min_Double_Packet_Time) {
-                    // If we got two packets too quickly, assume the latest one
-                    // is correct
-                    velEstimate = estimate.vel;
-                    angleVelEstimate = estimate.angleVel;
-                    estimate.velValid = true;
-                } else if (dtime < Min_Velocity_Valid_Time) {
-                    // If we got two packets at an expected time, properly
-                    // calculate vel and angle
-                    velEstimate = (obs.pos - estimate.pos) / dtime.count();
-                    angleVelEstimate =
-                        fixAngleRadians(obs.angle - estimate.angle) /
-                        dtime.count();
-                    estimate.velValid = true;
-                } else if (robot->velValid) {set tabstop     =4
-set softtabstop =4
-set shiftwidth  =4
-set expandtab
-                    velEstimate = robot->vel;
-                    angleVelEstimate = robot->angleVel;
-                }
-
-                // velocity alpha is the amount to 'trust' new data by
-                const auto velocityAlpha = *_velocity_alpha;
-                if (dtime < Min_Velocity_Valid_Time && estimate.velValid) {
-                    // Weight old data and new data by 'velocityAlpha'
-                    estimate.vel = velEstimate * velocityAlpha +
-                                   estimate.vel * (1.0f - velocityAlpha);
-                    estimate.angleVel = fixAngleRadians(
-                        angleVelEstimate * velocityAlpha +
-                        estimate.angleVel * (1.0f - velocityAlpha));
-                } else {
-                    estimate.vel = velEstimate;
-                    estimate.angleVel = fixAngleRadians(angleVelEstimate);
-                }
-
-                estimate.pos = obs.pos;
-                estimate.angle = obs.angle;
-                estimate.visible = true;
-                estimate.time = obs.time;
-                estimate.visionFrame = obs.frameNumber;
-		*/
             }
         }
 
         avg_pos = avg_pos / pos_cnt;
 	avg_ang = avg_ang / pos_cnt;
 
-
-
 	_currentEstimate.vel = (_currentEstimate.pos - avg_pos) * 1/60.0f;
 	_currentEstimate.pos = avg_pos;
 	_currentEstimate.angle = avg_ang;
 	_currentEstimate.velValid = true;
 
-
-	/*
-        _currentEstimate.pos = positionTotal / positionWeightTotal;
-        if (velocityWeightTotal > 0) {
-            _currentEstimate.vel = velocityTotal / velocityWeightTotal;
-            _currentEstimate.velValid = true;
-        } else {
-            _currentEstimate.vel = Point();
-            _currentEstimate.velValid = false;
-        }
-	*/
 
         _currentEstimate.visible = true;
         _currentEstimate.time = currentTime;
@@ -185,7 +122,6 @@ set expandtab
 
             Point delta_bdy_rel_pos(enc_delta_bdy_rel[0,0], enc_delta_bdy_rel[1,0]);
             auto world_delta = delta_bdy_rel_pos.rotated(-M_PI / 2 + _currentEstimate.angle);
-            // auto world_delta = delta_bdy_rel_pos.rotated(_currentEstimate.angle);
 
             _currentEstimate.pos += world_delta;
             _currentEstimate.angle += enc_delta_bdy_rel[2,0];
@@ -197,9 +133,8 @@ set expandtab
                 log_file << enc[0] << " " << enc[1] << " " << enc[2] << " " << enc[3] << " ";
                 log_file << enc_reading_sum[0] << " " << enc_reading_sum[1] << " " << enc_reading_sum[2] << " " << enc_reading_sum[3];
                 log_file << std::endl;
-	}
+	    }
 
-            //std::cout << "Adding position delta: " << world_delta << std::endl;
         }
 
         *robot = _currentEstimate;
