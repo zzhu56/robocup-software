@@ -21,6 +21,13 @@ RobotFilter::RobotFilter()
     : last_rx_timestamp(0)
 {
         enc_reading_sum << 0, 0, 0, 0;
+	log_file.open("enc_vis_filter.csv");
+
+        log_file << "avg_pos.x() avg_pos.y() avg_ang "
+                 << "_currentEstimate.pos.x() _currentEstimate.pos.y() _currentEstimate.angle "
+                 << "enc[0] enc[1] enc[2] enc[3] "
+                 << "enc_reading_sum[0] enc_reading_sum[1] enc_reading_sum[2] enc_reading_sum[3]"
+                 << std::endl;
 }
 
 void RobotFilter::createConfiguration(Configuration* cfg) {
@@ -38,7 +45,7 @@ void RobotFilter::update(
     // if we have rx, update rx sum and buffer
     if (bots_latest_rx && bots_latest_rx->timestamp() != last_rx_timestamp) {
         const auto& rx = *bots_latest_rx;
-        std::cout << "Have new rx in robot filter!" << rx.timestamp() << std::endl;
+        //std::cout << "Have new rx in robot filter!" << rx.timestamp() << std::endl;
         last_rx_timestamp = rx.timestamp();
 
         // Check we have non zero frame delay, and packet has encoders
@@ -68,11 +75,21 @@ void RobotFilter::update(
     bool anyValid =
         std::any_of(observations.begin(), observations.end(),
                     [](const RobotObservation& obs) { return obs.valid; });
+
+    std::size_t pos_cnt = 0;
+    Point avg_pos(0, 0);
+    double avg_ang = 0;
+
     if (anyValid) {
         for (int i = 0; i < observations.size(); i++) {
             const auto& obs = observations[i];
             auto& estimate = _estimates[i];
-            if (obs.valid) {
+            if (obs.valid && obs.pos.x() != 0) {
+		avg_pos += obs.pos;
+		avg_ang += obs.angle;
+		pos_cnt++;
+
+		/*
                 Point velEstimate{};
                 double angleVelEstimate = 0;
 
@@ -91,7 +108,10 @@ void RobotFilter::update(
                         fixAngleRadians(obs.angle - estimate.angle) /
                         dtime.count();
                     estimate.velValid = true;
-                } else if (robot->velValid) {
+                } else if (robot->velValid) {set tabstop     =4
+set softtabstop =4
+set shiftwidth  =4
+set expandtab
                     velEstimate = robot->vel;
                     angleVelEstimate = robot->angleVel;
                 }
@@ -115,54 +135,22 @@ void RobotFilter::update(
                 estimate.visible = true;
                 estimate.time = obs.time;
                 estimate.visionFrame = obs.frameNumber;
+		*/
             }
         }
 
-        Point positionTotal{};
-        double positionWeightTotal = 0;
+        avg_pos = avg_pos / pos_cnt;
+	avg_ang = avg_ang / pos_cnt;
 
-        Point velocityTotal{};
-        double velocityWeightTotal = 0;
 
-        double angleTotal = 0;
-        double angleWeightTotal = 0;
 
-        double angleVelTotal = 0;
-        double angleVelWeightTotal = 0;
+	_currentEstimate.vel = (_currentEstimate.pos - avg_pos) * 1/60.0f;
+	_currentEstimate.pos = avg_pos;
+	_currentEstimate.angle = avg_ang;
+	_currentEstimate.velValid = true;
 
-        // Weight observations based on time since we've seen and average
-        // everything together.
-        for (const auto& estimate : _estimates) {
-            const auto dTime = RJ::Seconds(currentTime - estimate.time);
 
-            if (estimate.visible && dTime < Vision_Timeout_Time) {
-                Point pos{};
-                double angle{};
-                // treat data with less certainty the older it is
-                double currentPosWeight = std::max(
-                    0.0, 1.0 - std::pow(dTime / Vision_Timeout_Time, 2));
-                if (estimate.velValid) {
-                    pos = estimate.pos + estimate.vel * dTime.count();
-                    velocityTotal += estimate.vel * currentPosWeight;
-                    velocityWeightTotal += currentPosWeight;
-
-                    angle = estimate.angle + estimate.angleVel * dTime.count();
-                    angleVelTotal += estimate.angleVel * currentPosWeight;
-                    angleVelWeightTotal += currentPosWeight;
-                } else {
-                    pos = estimate.pos;
-
-                    angle = estimate.angle;
-                    currentPosWeight /= 2;
-                }
-                positionTotal += pos * currentPosWeight;
-                positionWeightTotal += currentPosWeight;
-
-                angleTotal += angle * currentPosWeight;
-                angleWeightTotal += currentPosWeight;
-            }
-        }
-
+	/*
         _currentEstimate.pos = positionTotal / positionWeightTotal;
         if (velocityWeightTotal > 0) {
             _currentEstimate.vel = velocityTotal / velocityWeightTotal;
@@ -171,17 +159,12 @@ void RobotFilter::update(
             _currentEstimate.vel = Point();
             _currentEstimate.velValid = false;
         }
+	*/
 
         _currentEstimate.visible = true;
         _currentEstimate.time = currentTime;
         _currentEstimate.visionFrame = frameNumber;
-        _currentEstimate.angle = angleTotal / angleWeightTotal;
 
-        if (angleVelWeightTotal > 0) {
-            _currentEstimate.angleVel = angleVelTotal / angleVelWeightTotal;
-        } else {
-            _currentEstimate.angleVel = 0;
-        }
     }
 
     if (currentTime - _currentEstimate.time < Vision_Timeout_Time) {
@@ -197,15 +180,26 @@ void RobotFilter::update(
                           _currentEstimate.pos.y(),
                           _currentEstimate.angle;
 
+	    std::cout << "Enc read sum" << enc_reading_sum << std::endl;
             auto enc_delta_bdy_rel = RobotModel::get().EncToBot * enc_reading_sum.cast<double>();
 
             Point delta_bdy_rel_pos(enc_delta_bdy_rel[0,0], enc_delta_bdy_rel[1,0]);
             auto world_delta = delta_bdy_rel_pos.rotated(-M_PI / 2 + _currentEstimate.angle);
+            // auto world_delta = delta_bdy_rel_pos.rotated(_currentEstimate.angle);
 
             _currentEstimate.pos += world_delta;
             _currentEstimate.angle += enc_delta_bdy_rel[2,0];
 
-            std::cout << "Adding position delta: " << world_delta << std::endl;
+            if (enc_reading_buf.size() != 0) {
+                log_file << avg_pos.x() << " " << avg_pos.y() << " " << avg_ang << " ";
+                log_file << _currentEstimate.pos.x() << " " << _currentEstimate.pos.y() << " " << _currentEstimate.angle << " ";
+	        auto enc = *(enc_reading_buf.end()-1);
+                log_file << enc[0] << " " << enc[1] << " " << enc[2] << " " << enc[3] << " ";
+                log_file << enc_reading_sum[0] << " " << enc_reading_sum[1] << " " << enc_reading_sum[2] << " " << enc_reading_sum[3];
+                log_file << std::endl;
+	}
+
+            //std::cout << "Adding position delta: " << world_delta << std::endl;
         }
 
         *robot = _currentEstimate;

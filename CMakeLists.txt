@@ -18,7 +18,7 @@ message("${TARGET}")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON) # Don't fall back to older versions
 
-add_subdirectory(external/grSim)
+#add_subdirectory(external/grSim)
 
 # Because we use ninja, we have to explicitly turn on color output for the compiler
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")

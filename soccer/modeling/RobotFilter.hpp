@@ -2,6 +2,7 @@
 
 #include <Robot.hpp>
 #include <array>
+#include <fstream>
 
 #include <rc-fshare/robot_model.hpp>
 #include <Eigen/Dense>
@@ -36,6 +37,7 @@ public:
     bool valid;
     int source;
 
+
     // Compares the times on two observations.  Used for sorting.
     bool operator<(const RobotObservation& other) const {
         return time < other.time;
@@ -47,6 +49,7 @@ public:
  */
 class RobotFilter {
 public:
+    std::ofstream log_file;
     // Vision Related
     static constexpr int Num_Cameras = 4;
 
