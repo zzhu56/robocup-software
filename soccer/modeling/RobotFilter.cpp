@@ -117,7 +117,7 @@ void RobotFilter::update(
                           _currentEstimate.pos.y(),
                           _currentEstimate.angle;
 
-	    std::cout << "Enc read sum" << enc_reading_sum << std::endl;
+	    // std::cout << "Enc read sum" << enc_reading_sum << std::endl;
             auto enc_delta_bdy_rel = RobotModel::get().EncToBot * enc_reading_sum.cast<double>();
 
             Point delta_bdy_rel_pos(enc_delta_bdy_rel[0,0], enc_delta_bdy_rel[1,0]);

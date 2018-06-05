@@ -315,6 +315,8 @@ void USBRadio::handleRxData(uint8_t* buf) {
         packet.add_encoders(msg->encDeltas[i]);
     }
 
+    packet.set_error(msg->error);
+
     // fpga status
     if (FpgaStatus_IsValid(msg->fpgaStatus)) {
         packet.set_fpga_status(FpgaStatus(msg->fpgaStatus));

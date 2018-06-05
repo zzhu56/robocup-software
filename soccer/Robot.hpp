@@ -581,6 +581,8 @@ private:
     static ConfigDouble* _selfAvoidRadius;
     static ConfigDouble* _oppAvoidRadius;
     static ConfigDouble* _oppGoalieAvoidRadius;
+    static ConfigDouble* _kp;
+    static ConfigDouble* _ki;
 
     int8_t _planningPriority;
 };

@@ -570,7 +570,9 @@ void Processor::run() {
                 // log->set_cmd_w(r->cmd_w);
                 log->set_shell(r->shell());
                 log->set_angle(r->angle);
+
                 auto radioRx = r->radioRx();
+                log->set_error(radioRx.error());
                 if (radioRx.has_kicker_voltage()) {
                     log->set_kicker_voltage(radioRx.kicker_voltage());
                 }

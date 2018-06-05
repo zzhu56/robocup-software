@@ -120,6 +120,8 @@ void SimRadio::receive() {
                                          : kicker_status_ready);
         rx.set_kicker_voltage(200);
 
+        rx.set_error(0.1f);
+
         _reversePackets.push_back(rx);
     }
 }

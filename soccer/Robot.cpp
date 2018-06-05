@@ -47,6 +47,8 @@ REGISTER_CONFIGURABLE(OurRobot)
 ConfigDouble* OurRobot::_selfAvoidRadius;
 ConfigDouble* OurRobot::_oppAvoidRadius;
 ConfigDouble* OurRobot::_oppGoalieAvoidRadius;
+ConfigDouble* OurRobot::_kp;
+ConfigDouble* OurRobot::_ki;
 
 void OurRobot::createConfiguration(Configuration* cfg) {
     _selfAvoidRadius =
@@ -55,6 +57,8 @@ void OurRobot::createConfiguration(Configuration* cfg) {
                                        Robot_Radius - 0.01);
     _oppGoalieAvoidRadius = new ConfigDouble(
         cfg, "PathPlanner/oppGoalieAvoidRadius", Robot_Radius + 0.05);
+    _kp = new ConfigDouble(cfg, "Lower/kp", 1);
+    _ki = new ConfigDouble(cfg, "Lower/ki", 0);
 }
 
 OurRobot::OurRobot(int shell, SystemState* state)
@@ -144,6 +148,9 @@ void OurRobot::resetForNextIteration() {
     resetMotionConstraints();
     _unkick();
     control->set_song(Packet::Control::STOP);
+
+    control->set_kp(*_kp);
+    control->set_ki(*_ki);
 
     isPenaltyKicker = false;
     isBallPlacer = false;

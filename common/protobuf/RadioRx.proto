@@ -68,4 +68,6 @@ message RadioRx
 	optional HardwareVersion hardware_version = 12 [default = Unknown];
 	
 	optional Quaternion quaternion = 13;
+
+        required float error = 15;
 }

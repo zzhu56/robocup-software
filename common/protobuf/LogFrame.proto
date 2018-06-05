@@ -136,6 +136,8 @@ message LogFrame
 		optional float battery_voltage = 14;
 		
 		optional Quaternion quaternion = 15;
+
+                required float error = 17;
 	}
 
 	message Ball
