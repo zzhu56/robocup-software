@@ -2,6 +2,7 @@
 
 #include <protobuf/grSim_Commands.pb.h>
 #include <protobuf/grSim_Packet.pb.h>
+#include <protobuf/grSim_Status.pb.h>
 #include <Geometry2d/Util.hpp>
 #include <Network.hpp>
 #include <Robot.hpp>
@@ -73,55 +74,97 @@ void SimRadio::send(Packet::RadioTx& packet) {
 
 void SimRadio::receive() {
     while (_rx_socket.hasPendingDatagrams()) {
-        char byte = 0;
-        // one byte at a time
-        _rx_socket.readDatagram(&byte, 1);
+        unsigned int n = _rx_socket.pendingDatagramSize();
+        string buf;
+        buf.resize(n);
+        _rx_socket.readDatagram(&buf[0], n);
 
-        // grSim really needs to set up a proto packet for robot status.
-        // Instead they pack their own byte up in a custom way :/
-        //
-        // byte structure:
-        // 0-2: Robot_ID
-        // 3: touching_ball
-        // 4: just_kicked
-        // 5: robot_on
-        const uint8_t robot_id_mask = 0x7;
-        const uint8_t touching_ball_mask = 0x1 << 3;
-        const uint8_t just_kicked_mask = 0x1 << 4;
-        const uint8_t robot_on_mask = 0x1 << 5;
+        grSim_Status grsim_packet;
 
-        int robot_id = byte & robot_id_mask;
-        bool ball_sense = byte & touching_ball_mask;
-        bool just_kicked = byte & just_kicked_mask;
-        bool robot_on = byte & robot_on_mask;
+        if (!grsim_packet.ParseFromString(buf)) {
+            std::cout << "Bad radio packet of " << n << " bytes" << std::endl;
+        }
 
         RadioRx rx;
-        rx.set_robot_id(robot_id);
-        rx.set_hardware_version(RJ2015);
-        rx.set_battery(100);
-
-        rx.set_ball_sense_status(ball_sense ? Packet::HasBall : Packet::NoBall);
+        rx.set_robot_id(grsim_packet.robot_id());
+        rx.set_ball_sense_status(grsim_packet.ball_sensed() ? HasBall : NoBall );
+        rx.set_hardware_version(RJ2015); // overwrite what's in grsim right now
+        rx.set_battery(100); // overwrite
 
         const int num_motors = 5;
         // 5 motors including dribbler
         for (int i = 0; i < num_motors; i++) {
-            rx.add_motor_status(MotorStatus::Good);
+            rx.add_motor_status(MotorStatus::Good); // overwrite
         }
 
-        rx.set_fpga_status(FpgaGood);
-        rx.set_timestamp(RJ::timestamp());
+        for (auto e : grsim_packet.encoders()) {
+            rx.add_encoders(e);
+        }
+
+        rx.set_fpga_status(FpgaGood); // overwrite
+        rx.set_timestamp(RJ::timestamp()); // overwrite since non sensical grsim timestamp
 
         const uint8_t kicker_status_charging = Kicker_Enabled | Kicker_I2C_OK;
         const uint8_t kicker_status_ready =
             Kicker_Charged | kicker_status_charging;
         ;
 
-        rx.set_kicker_status(just_kicked ? kicker_status_charging
-                                         : kicker_status_ready);
+        rx.set_kicker_status(grsim_packet.just_kicked() ? kicker_status_charging
+                                                        : kicker_status_ready);
         rx.set_kicker_voltage(200);
 
         _reversePackets.push_back(rx);
     }
+    // while (_rx_socket.hasPendingDatagrams()) {
+        // char byte = 0;
+        // // one byte at a time
+        // _rx_socket.readDatagram(&byte, 1);
+
+        // // grSim really needs to set up a proto packet for robot status.
+        // // Instead they pack their own byte up in a custom way :/
+        // //
+        // // byte structure:
+        // // 0-2: Robot_ID
+        // // 3: touching_ball
+        // // 4: just_kicked
+        // // 5: robot_on
+        // const uint8_t robot_id_mask = 0x7;
+        // const uint8_t touching_ball_mask = 0x1 << 3;
+        // const uint8_t just_kicked_mask = 0x1 << 4;
+        // const uint8_t robot_on_mask = 0x1 << 5;
+
+        // int robot_id = byte & robot_id_mask;
+        // bool ball_sense = byte & touching_ball_mask;
+        // bool just_kicked = byte & just_kicked_mask;
+        // bool robot_on = byte & robot_on_mask;
+
+        // RadioRx rx;
+        // rx.set_robot_id(robot_id);
+        // rx.set_hardware_version(RJ2015);
+        // rx.set_battery(100);
+
+        // rx.set_ball_sense_status(ball_sense ? Packet::HasBall : Packet::NoBall);
+
+        // const int num_motors = 5;
+        // // 5 motors including dribbler
+        // for (int i = 0; i < num_motors; i++) {
+            // rx.add_motor_status(MotorStatus::Good);
+        // }
+
+        // rx.set_fpga_status(FpgaGood);
+        // rx.set_timestamp(RJ::timestamp());
+
+        // const uint8_t kicker_status_charging = Kicker_Enabled | Kicker_I2C_OK;
+        // const uint8_t kicker_status_ready =
+            // Kicker_Charged | kicker_status_charging;
+        // ;
+
+        // rx.set_kicker_status(just_kicked ? kicker_status_charging
+                                         // : kicker_status_ready);
+        // rx.set_kicker_voltage(200);
+
+        // _reversePackets.push_back(rx);
+    // }
 }
 
 void SimRadio::stopRobots() {

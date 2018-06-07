@@ -61,7 +61,8 @@ public:
     /// Gives a new observation to the filter
     void update(const std::array<RobotObservation, Num_Cameras>& obs,
                 RobotPose* robot, RJ::Time currentTime, uint32_t frameNumber,
-                boost::optional<Packet::RadioRx> bots_latest_rx = boost::none);
+                boost::optional<Packet::RadioRx> bots_latest_rx = boost::none,
+                bool verbose = false);
 
     static void createConfiguration(Configuration* cfg);
 

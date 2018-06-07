@@ -31,14 +31,24 @@ void RobotFilter::createConfiguration(Configuration* cfg) {
 void RobotFilter::update(
     const std::array<RobotObservation, Num_Cameras>& observations,
     RobotPose* robot, RJ::Time currentTime, uint32_t frameNumber,
-    boost::optional<Packet::RadioRx> bots_latest_rx) {
+    boost::optional<Packet::RadioRx> bots_latest_rx,
+    bool verbose) {
+
+    if (verbose) std::cout << "====================" << std::endl;
+    if (verbose) std::cout << "Frame: " << frameNumber << std::endl;
+    if (verbose && bots_latest_rx) std::cout << "Has RX" << std::endl;
 
     bool have_valid_encs = false;
 
+    if (verbose) {
+        std::cout << "RX timestamp: " << bots_latest_rx->timestamp() << std::endl;
+        std::cout << "Last timestamp: " << last_rx_timestamp << std::endl;
+    }
+
     // if we have rx, update rx sum and buffer
     if (bots_latest_rx && bots_latest_rx->timestamp() != last_rx_timestamp) {
+        if (verbose) std::cout << "Appending to encoder list" << std::endl;
         const auto& rx = *bots_latest_rx;
-        std::cout << "Have new rx in robot filter!" << rx.timestamp() << std::endl;
         last_rx_timestamp = rx.timestamp();
 
         // Check we have non zero frame delay, and packet has encoders
@@ -69,6 +79,7 @@ void RobotFilter::update(
         std::any_of(observations.begin(), observations.end(),
                     [](const RobotObservation& obs) { return obs.valid; });
     if (anyValid) {
+        if (verbose) std::cout << "Updating vision" << std::endl;
         for (int i = 0; i < observations.size(); i++) {
             const auto& obs = observations[i];
             auto& estimate = _estimates[i];
@@ -205,7 +216,7 @@ void RobotFilter::update(
             _currentEstimate.pos += world_delta;
             _currentEstimate.angle += enc_delta_bdy_rel[2,0];
 
-            std::cout << "Adding position delta: " << world_delta << std::endl;
+            if (verbose) std::cout << "Adding position deltas" << std::endl;
         }
 
         *robot = _currentEstimate;

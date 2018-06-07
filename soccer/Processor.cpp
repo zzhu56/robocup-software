@@ -233,7 +233,8 @@ void Processor::runModels(
             _state.self[i]->filter()->update(robotObservations[i],
                                              _state.self[i], time,
                                              frame->frame_number(),
-                                             _state.self[i]->radioRx());
+                                             _state.self[i]->radioRx(),
+                                             i == 1); // verbose only if robot 1
         }
 
         const RepeatedPtrField<SSL_DetectionRobot>& oppRobots =
