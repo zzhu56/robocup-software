@@ -8,18 +8,20 @@ import role_assignment
 import robocup
 import planning_priority
 import time
-import skills.move
+import math
 
 
 class Capture(single_robot_behavior.SingleRobotBehavior):
 
     # tunable config values
-    CourseApproachErrorThresh = 0.8
-    CourseApproachDist = 0.4
-    CourseApproachAvoidBall = 0.10
     DelayTime = .1
-    InterceptVelocityThresh = 0.5
+    AvoidThresh = 0.10
+    InterceptVelocityThresh = 0.1
     DampenMult = 0.08
+
+    SigmoidLimit = 2.0
+    SigmoidExp = 2.0
+    SigmoidShift = 1.0
 
     # Default dribbler speed, can be overriden by self.dribbler_power
     DribbleSpeed = 100
@@ -29,9 +31,8 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
 
     class State(Enum):
         intercept = 0
-        course_approach = 1
-        fine_approach = 2
-        delay = 3
+        approach = 1
+        delay = 2
 
     ## Capture Constructor
     # faceBall - If false, any turning functions are turned off,
@@ -48,17 +49,11 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
 
         self.add_transition(
             Capture.State.intercept,
-            Capture.State.course_approach, lambda: main.ball().vel.mag() < Capture.InterceptVelocityThresh,
+            Capture.State.approach, lambda: main.ball().vel.mag() < Capture.InterceptVelocityThresh,
             'moving to dampen')
 
         self.add_transition(
-            Capture.State.course_approach,
-            Capture.State.fine_approach, lambda: (self.bot_in_front_of_ball(
-            ) or self.bot_near_ball(Capture.CourseApproachDist)) and main.ball().valid,
-            'dist to ball < threshold')
-
-        self.add_transition(
-            Capture.State.fine_approach,
+            Capture.State.approach,
             Capture.State.delay, lambda: evaluation.ball.robot_has_ball(self.robot),
             'has ball')
 
@@ -71,16 +66,9 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
 
         self.add_transition(
             Capture.State.delay,
-            Capture.State.fine_approach,
+            Capture.State.approach,
             lambda: not evaluation.ball.robot_has_ball(self.robot),
             'lost ball during delay')
-
-        self.add_transition(
-            Capture.State.fine_approach, Capture.State.course_approach, lambda:
-            not (self.bot_in_front_of_ball() or self.bot_near_ball(
-                Capture.CourseApproachDist)) and (not self.bot_near_ball(
-                    Capture.CourseApproachDist * 1.5) or not main.ball().pos),
-            'ball went into goal')
 
         self.dribbler_power = Capture.DribbleSpeed
 
@@ -100,11 +88,8 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
 
     # normalized vector pointing from the ball to the point the robot should get to in course_aproach
 
-    def find_moving_intercept(self):
+    def find_intercept(self):
         return find_moving_robot_intercept(self.robot)
-
-    def find_intercept_point(self):
-        return find_robot_intercept_point(self.robot)
 
     def execute_running(self):
         self.robot.set_planning_priority(planning_priority.CAPTURE)
@@ -113,49 +98,19 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
             self.robot.face(main.ball().pos)
 
     def execute_intercept(self):
-        pos = self.find_moving_intercept()
+        pos = self.find_intercept()
         self.robot.move_to(pos)
 
-    def on_enter_course_approach(self):
-        self.lastApproachTarget == None
-
-    def execute_course_approach(self):
-        pos = self.find_intercept_point()
-
-        if (self.lastApproachTarget != None and
-            (pos - self.lastApproachTarget).mag() < 0.1):
-            pos = self.lastApproachTarget
-
-        self.lastApproachTarget = pos
-
-        # don't hit the ball on accident
-        if pos.dist_to(main.ball(
-        ).pos) < Capture.CourseApproachAvoidBall + constants.Robot.Radius:
+    #TODO:set world vel only takes a vector. Also set it so that it approaches the point where the ball is at plus the radius
+    def execute_approach(self):
+        distToBall = (main.ball().pos - self.robot.pos).mag() 
+        if (distToBall < Capture.AvoidThresh):
             self.robot.disable_avoid_ball()
-        else:
-            self.robot.set_avoid_ball_radius(Capture.CourseApproachAvoidBall)
-
-        self.robot.move_to(pos)
-        main.system_state().draw_circle(self.lastApproachTarget,
-                                        constants.Ball.Radius,
-                                        constants.Colors.White, "Capture")
-
-    def on_exit_course_approach(self):
-        self.lastApproachTarget is None
-
-    def execute_fine_approach(self):
-        self.robot.disable_avoid_ball()
-        self.robot.set_dribble_speed(self.dribbler_power)
-
-        # TODO(ashaw596): explain this math a bit
-        bot2ball = (main.ball().pos - self.robot.pos).normalized()
-        multiplier = 1.5
-        aproach = self.bot_to_ball(
-        ) * multiplier + bot2ball * Capture.FineApproachSpeed / 4 + main.ball(
-        ).vel
-        if (aproach.mag() > 1):
-            aproach = aproach.normalized() * 1
-        self.robot.set_world_vel(aproach)
+            self.robot.set_dribble_speed(self.dribbler_power)
+        approachSpeed = Capture.SigmoidLimit / (1 + math.pow(math.e, (Capture.SigmoidExp * (distToBall + Capture.SigmoidShift)))) 
+        approachVector = approachSpeed * robocup
+        self.robot.set_world_vel(approachSpeed)
+        self.robot.move_to(main.ball.pos)
 
     def on_enter_delay(self):
         self.start_time = time.time()
@@ -179,35 +134,3 @@ def find_moving_robot_intercept(robot):
     passline = robocup.Line(main.ball().pos, main.ball().pos + main.ball().vel * 10)
     pos = passline.nearest_point(robot.pos) + (main.ball().vel * Capture.DampenMult)
     return pos
-
-# calculates intercept point for the slow or stationary fine approach state
-def find_robot_intercept_point(robot):
-    if robot is None:
-        return main.ball().pos
-
-    approach_vec = approach_vector(robot)
-    # sample every 5 cm in the -approach_vector direction from the ball
-    pos = None
-
-    for i in range(50):
-        dist = i * 0.05
-        pos = main.ball().pos + approach_vec * dist
-        # how long will it take the ball to get there
-        ball_time = evaluation.ball.rev_predict(main.ball().vel, dist)
-        robotDist = (pos - robot.pos).mag() * 0.6
-        bot_time = robocup.get_trapezoidal_time(robotDist, robotDist, 2.2, 1,
-                                                robot.vel.mag(), 0)
-
-        if bot_time < ball_time:
-            break
-
-    return pos
-
-
-def approach_vector(robot):
-    if main.ball().vel.mag() > 0.25 \
-       and robot.pos.dist_to(main.ball().pos) > 0.2:
-        # ball's moving, get on the side it's moving towards
-        return main.ball().vel.normalized()
-    else:
-        return (robot.pos - main.ball().pos).normalized()
