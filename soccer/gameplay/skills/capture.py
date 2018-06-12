@@ -17,7 +17,7 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
     CourseApproachErrorThresh = 0.8
     CourseApproachDist = 0.4
     CourseApproachAvoidBall = 0.10
-    DelayTime = .5
+    DelayTime = .1
     InterceptVelocityThresh = 0.5
     DampenMult = 0.08
 
@@ -39,14 +39,8 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
     def __init__(self, faceBall=True):
         super().__init__(continuous=False)
 
-        self.add_state(Capture.State.intercept,
-                       behavior.Behavior.State.running)
-        self.add_state(Capture.State.course_approach,
-                       behavior.Behavior.State.running)
-        self.add_state(Capture.State.fine_approach,
-                       behavior.Behavior.State.running)
-        self.add_state(Capture.State.delay,
-                       behavior.Behavior.State.running)
+        for state in Capture.State:
+            self.add_state(state,behavior.Behavior.State.running)
 
         self.add_transition(behavior.Behavior.State.start,
                             Capture.State.intercept, lambda: True,
@@ -55,7 +49,6 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
         self.add_transition(
             Capture.State.intercept,
             Capture.State.course_approach, lambda: main.ball().vel.mag() < Capture.InterceptVelocityThresh,
-            #or self.subbehavior_with_name('move').state == behavior.Behavior.State.completed,
             'moving to dampen')
 
         self.add_transition(
@@ -121,8 +114,6 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
 
     def execute_intercept(self):
         pos = self.find_moving_intercept()
-        # m = skills.move.Move(pos)
-        # self.add_subbehavior(m, 'move', required=False)
         self.robot.move_to(pos)
 
     def on_enter_course_approach(self):
@@ -178,7 +169,7 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
         reqs.require_kicking = True
         # try to be near the ball
         if main.ball().valid:
-            reqs.cost_func = lambda r: reqs.position_cost_multiplier * find_robot_intercept_point(
+            reqs.cost_func = lambda r: reqs.position_cost_multiplier * find_moving_robot_intercept(
                 r).dist_to(r.pos)
 
         return reqs
