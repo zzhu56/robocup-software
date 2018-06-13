@@ -247,7 +247,7 @@ void MotionControl::_targetWorldVel(Point targetVel) {
 }
 
 void MotionControl::_visRotationEst(float rotEst) {
-    _robot->control->set_visRotEst(_robot->angle);
+    _robot->control->set_visrotest(_robot->angle);
 }
 
 Pid* MotionControl::getPid(char controller) {

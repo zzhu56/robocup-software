@@ -215,12 +215,15 @@ void USBRadio::send(Packet::RadioTx& packet) {
 
             auto& controlMessage = msg->message.controlMessage;
 
-            controlMessage.bodyX = static_cast<int16_t>(
+            controlMessage.worldX = static_cast<int16_t>(
                 robot.xvelocity() * rtp::ControlMessage::VELOCITY_SCALE_FACTOR);
-            controlMessage.bodyY = static_cast<int16_t>(
+            controlMessage.worldY = static_cast<int16_t>(
                 robot.yvelocity() * rtp::ControlMessage::VELOCITY_SCALE_FACTOR);
-            controlMessage.bodyW = static_cast<int16_t>(
+            controlMessage.W = static_cast<int16_t>(
                 robot.avelocity() * rtp::ControlMessage::VELOCITY_SCALE_FACTOR);
+
+            controlMessage.visRotEst = static_cast<int16_t>(
+                    robot.visrotest() * rtp::ControlMessage::ROTATION_SCALE_FACTOR);
 
             controlMessage.dribbler =
                 clamp(static_cast<uint16_t>(robot.dvelocity()) * 2, 0, 255);
