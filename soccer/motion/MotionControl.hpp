@@ -45,11 +45,13 @@ private:
     // sets the target velocity in the robot's radio packet
     // this method is used by both run() and stopped() and does the
     // velocity and acceleration limiting
-    void _targetBodyVel(Geometry2d::Point targetVel);
+    void _targetWorldVel(Geometry2d::Point targetVel);
 
     /// sets the target angle velocity in the robot's radio packet
     /// does velocity limiting and conversion
     void _targetAngleVel(float angleVel);
+
+    void _visRotationEst(float rotEst);
 
     OurRobot* _robot;
 

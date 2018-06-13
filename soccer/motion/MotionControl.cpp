@@ -109,7 +109,7 @@ void MotionControl::run() {
     } else {
         float angleError = fixAngleRadians(*targetAngleFinal - _robot->angle);
 
-        targetW = _angleController.run(angleError);
+        targetW = angleError; //_angleController.run(angleError);
 
         // limit W
         if (abs(targetW) > (rotationConstraints.maxSpeed)) {
@@ -140,7 +140,7 @@ void MotionControl::run() {
         // the robot body coordinate system is wierd...
         vel.rotate(-M_PI_2);
 
-        _targetBodyVel(vel);
+        _targetWorldVel(vel);
 
         return;  // pivot handles both angle and position
     }
@@ -188,13 +188,15 @@ void MotionControl::run() {
 
     // convert from world to body coordinates
     // the +y axis of the robot points forwards
-    target.vel = target.vel.rotated(M_PI_2 - _robot->angle);
+    // we want the bot's much faster control loop to handle rotating
+    // the velocity vector now, so don't rotate
+    // target.vel = target.vel.rotated(M_PI_2 - _robot->angle);
 
-    this->_targetBodyVel(target.vel);
+    this->_targetWorldVel(target.vel);
 }
 
 void MotionControl::stopped() {
-    _targetBodyVel(Point(0, 0));
+    _targetWorldVel(Point(0, 0));
     _targetAngleVel(0);
 }
 
@@ -215,7 +217,7 @@ void MotionControl::_targetAngleVel(float angleVel) {
     _robot->control->set_avelocity(angleVel);
 }
 
-void MotionControl::_targetBodyVel(Point targetVel) {
+void MotionControl::_targetWorldVel(Point targetVel) {
     // Limit Velocity
     targetVel.clamp(*_max_velocity);
 
@@ -242,6 +244,10 @@ void MotionControl::_targetBodyVel(Point targetVel) {
     // set control values
     _robot->control->set_xvelocity(targetVel.x() * _x_multiplier->value());
     _robot->control->set_yvelocity(targetVel.y());
+}
+
+void MotionControl::_visRotationEst(float rotEst) {
+    _robot->control->set_visRotEst(_robot->angle);
 }
 
 Pid* MotionControl::getPid(char controller) {
