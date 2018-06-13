@@ -191,7 +191,6 @@ void MotionControl::run() {
     // we want the bot's much faster control loop to handle rotating
     // the velocity vector now, so don't rotate
     // target.vel = target.vel.rotated(M_PI_2 - _robot->angle);
-
     this->_targetWorldVel(target.vel);
 }
 
@@ -244,10 +243,7 @@ void MotionControl::_targetWorldVel(Point targetVel) {
     // set control values
     _robot->control->set_xvelocity(targetVel.x() * _x_multiplier->value());
     _robot->control->set_yvelocity(targetVel.y());
-}
 
-void MotionControl::_visRotationEst(float rotEst) {
-    _robot->control->set_visrotest(_robot->angle);
 }
 
 Pid* MotionControl::getPid(char controller) {

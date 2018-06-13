@@ -749,6 +749,7 @@ void Processor::sendRadioData() {
     Packet::RadioTx* tx = _state.logFrame->mutable_radio_tx();
     tx->set_txmode(Packet::RadioTx::UNICAST);
 
+
     // Halt overrides normal motion control, but not joystick
     if (_state.gameState.halt()) {
         // Force all motor speeds to zero
@@ -775,6 +776,10 @@ void Processor::sendRadioData() {
             // Even if we are using the joystick, this sets robot_id and the
             // number of motors.
             txRobot->CopyFrom(r->robotPacket);
+
+            // always send vision estimate when we're visible
+            txRobot->mutable_control()->set_visrotest(r->angle);
+            std::cout << "visrotest: " << r->angle << std::endl;
 
             // MANUAL STUFF
             if (_multipleManual) {

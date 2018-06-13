@@ -225,6 +225,8 @@ void USBRadio::send(Packet::RadioTx& packet) {
             controlMessage.visRotEst = static_cast<int16_t>(
                     robot.visrotest() * rtp::ControlMessage::ROTATION_SCALE_FACTOR);
 
+            std::cout << robot.visrotest() << std::endl;
+
             controlMessage.dribbler =
                 clamp(static_cast<uint16_t>(robot.dvelocity()) * 2, 0, 255);
 
