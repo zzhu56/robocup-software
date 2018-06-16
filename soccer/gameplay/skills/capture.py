@@ -14,10 +14,12 @@ import math
 class Capture(single_robot_behavior.SingleRobotBehavior):
 
     # tunable config values
-    DelayTime = .1
-    AvoidThresh = 0.10
-    InterceptVelocityThresh = 0.1
-    DampenMult = 0.08
+    CourseApproachErrorThresh = 0.8
+    CourseApproachDist = 0.4
+    CourseApproachAvoidBall = 0.10
+    DelayTime = .2
+    InterceptVelocityThresh = 0.2
+    DampenMult = 0.06
 
     SigmoidLimit = 2.0
     SigmoidExp = 2.0
@@ -54,20 +56,21 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
 
         self.add_transition(
             Capture.State.approach,
-            Capture.State.delay, lambda: evaluation.ball.robot_has_ball(self.robot),
+            Capture.State.delay,
+            lambda: self.robot.has_ball_raw(),
             'has ball')
 
         self.add_transition(
             Capture.State.delay,
             behavior.Behavior.State.completed,
             lambda: time.time() - self.start_time > Capture.DelayTime and
-            evaluation.ball.robot_has_ball(self.robot),
+            self.robot.has_ball_raw(),
             'delay before finish')
 
         self.add_transition(
             Capture.State.delay,
-            Capture.State.approach,
-            lambda: not evaluation.ball.robot_has_ball(self.robot),
+            Capture.State.fine_approach,
+            lambda: not self.robot.has_ball_raw(),
             'lost ball during delay')
 
         self.dribbler_power = Capture.DribbleSpeed
@@ -82,14 +85,17 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
         return (self.bot_to_ball().mag() < distance)
 
     def bot_in_front_of_ball(self):
-        ball2bot = self.bot_to_ball() * -1
-        return (ball2bot.normalized().dot(main.ball().vel) > Capture.InFrontOfBallCosOfAngleThreshold) and \
-                ((ball2bot).mag() < (evaluation.ball.predict_stop(main.ball().pos, main.ball().vel) - main.ball().pos).mag())
+        if (self.robot is not None):
+            return self.robot.has_ball_raw()
+        else:
+            return None
 
-    # normalized vector pointing from the ball to the point the robot should get to in course_aproach
+    # calculates intercept point for the fast moving intercept state
+    def find_intercept_point(self):
+        return find_robot_intercept_point(self.robot)
 
-    def find_intercept(self):
-        return find_moving_robot_intercept(self.robot)
+    def find_capture_point(self):
+        return find_robot_capture_point(self.robot)
 
     def execute_running(self):
         self.robot.set_planning_priority(planning_priority.CAPTURE)
@@ -97,8 +103,9 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
         if (self.faceBall):
             self.robot.face(main.ball().pos)
 
+    # sets move subbehavior
     def execute_intercept(self):
-        pos = self.find_intercept()
+        pos = self.find_intercept_point()
         self.robot.move_to(pos)
 
     #TODO:set world vel only takes a vector. Also set it so that it approaches the point where the ball is at plus the radius
@@ -108,8 +115,6 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
             self.robot.disable_avoid_ball()
             self.robot.set_dribble_speed(self.dribbler_power)
         approachSpeed = Capture.SigmoidLimit / (1 + math.pow(math.e, (Capture.SigmoidExp * (distToBall + Capture.SigmoidShift)))) 
-        approachVector = approachSpeed * robocup
-        self.robot.set_world_vel(approachSpeed)
         self.robot.move_to(main.ball.pos)
 
     def on_enter_delay(self):
@@ -122,15 +127,14 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
     def role_requirements(self):
         reqs = super().role_requirements()
         reqs.require_kicking = True
-        # try to be near the ball
+        # find appropriate robot by finding the robot closest to the kick vector
+        # TODO: multiply this by a "distance normal curve" rather than a raw multiple
         if main.ball().valid:
-            reqs.cost_func = lambda r: reqs.position_cost_multiplier * find_moving_robot_intercept(
-                r).dist_to(r.pos)
-
+            reqs.cost_func = lambda r: reqs.position_cost_multiplier * (find_intercept_point(r).dist_to(r.pos) / (main.ball().pos).dist_to(r.pos))
         return reqs
 
 # calculates intercept point for the fast moving intercept state
-def find_moving_robot_intercept(robot):
+def find_robot_intercept_point(robot):
     passline = robocup.Line(main.ball().pos, main.ball().pos + main.ball().vel * 10)
     pos = passline.nearest_point(robot.pos) + (main.ball().vel * Capture.DampenMult)
     return pos
