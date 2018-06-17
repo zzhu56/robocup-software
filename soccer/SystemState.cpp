@@ -6,6 +6,7 @@
 #include <RobotConfig.hpp>
 #include <SystemState.hpp>
 #include "planning/Path.hpp"
+#include <execinfo.h>
 
 using namespace Packet;
 using namespace std;
@@ -61,6 +62,12 @@ std::unique_ptr<Planning::Path> Ball::path(RJ::Time startTime) const {
     return std::move(path);
 }
 
+void printBacktrace() {
+    void *array[10];
+    size_t size;
+    size = backtrace(array, 10);
+    backtrace_symbols_fd(array, size, STDERR_FILENO);
+}
 Planning::MotionInstant Ball::predict(RJ::Time estimateTime) const {
     if (estimateTime < time) {
         // debugThrow("Estimated Time can't be before observation time.");
@@ -71,7 +78,7 @@ Planning::MotionInstant Ball::predict(RJ::Time estimateTime) const {
                   << std::endl;
         std::cout << "actualTime: " << RJ::timestamp(time) << std::endl;
         estimateTime = time;
-
+        printBacktrace();
         // return MotionInstant();
     }
 
