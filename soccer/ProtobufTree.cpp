@@ -421,6 +421,7 @@ void ProtobufTree::contextMenuEvent(QContextMenuEvent* e) {
         if (field) {
             int t = field->type();
             if (t == FieldDescriptor::TYPE_FLOAT ||
+                t == FieldDescriptor::TYPE_INT32||
                 t == FieldDescriptor::TYPE_DOUBLE ||
                 (t == FieldDescriptor::TYPE_MESSAGE &&
                  field->message_type()->name() == "Point")) {

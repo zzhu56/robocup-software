@@ -54,7 +54,9 @@ public:
     static constexpr int Frame_Delay = 6;
     uint64_t last_rx_timestamp;
     std::vector<RobotModel::EncReading> enc_reading_buf;
-    RobotModel::EncReading enc_reading_sum;
+    RobotModel::EncReading enc_reading_sum{};
+    std::pair<Geometry2d::Point, double> enc_global_sum{};
+    boost::circular_buffer<std::pair<Geometry2d::Point, double>> enc_global_buf{100};
 
     RobotFilter();
 

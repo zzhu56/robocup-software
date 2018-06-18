@@ -1,6 +1,7 @@
 #include "RobotFilter.hpp"
 #include <Utils.hpp>
 #include <iostream>
+#include <boost/circular_buffer.hpp>
 
 using namespace std;
 using namespace Geometry2d;
@@ -38,17 +39,18 @@ void RobotFilter::update(
     if (verbose) std::cout << "Frame: " << frameNumber << std::endl;
     if (verbose && bots_latest_rx) std::cout << "Has RX" << std::endl;
 
-    bool have_valid_encs = false;
+    bool have_valid_encs = true;
 
     if (verbose) {
-        std::cout << "RX timestamp: " << bots_latest_rx->timestamp() << std::endl;
-        std::cout << "Last timestamp: " << last_rx_timestamp << std::endl;
+//        std::cout << "RX timestamp: " << bots_latest_rx->timestamp() << std::endl;
+//        std::cout << "Last timestamp: " << last_rx_timestamp << std::endl;
     }
 
     // if we have rx, update rx sum and buffer
     if (bots_latest_rx && bots_latest_rx->timestamp() != last_rx_timestamp) {
         if (verbose) std::cout << "Appending to encoder list" << std::endl;
         const auto& rx = *bots_latest_rx;
+        const auto timeDiff = RJ::numSeconds(last_rx_timestamp - rx.timestamp());
         last_rx_timestamp = rx.timestamp();
 
         // Check we have non zero frame delay, and packet has encoders
@@ -56,20 +58,48 @@ void RobotFilter::update(
             // if frame delay decreases, need to shrink encoder
             // buffer by removing older entries (beginning of vec)
             while (enc_reading_buf.size() >= *_vis_frame_delay) {
-                enc_reading_sum -= *enc_reading_buf.begin();
                 enc_reading_buf.erase(enc_reading_buf.begin());
+
+                const auto &first = *enc_global_buf.begin();
+                enc_global_sum.first -= first.first;
+                enc_global_sum.second -= first.second;
+                enc_global_buf.erase(enc_global_buf.begin());
+
             }
 
             // if frame delay increases, we'll just keep pushing back
             // without deleting history until we reach the needed size
             RobotModel::EncReading read;
-            read << rx.encoders().Get(0),
-                    rx.encoders().Get(1),
-                    rx.encoders().Get(2),
-                    rx.encoders().Get(3);
+            read << rx.encoders().Get(0).value(),
+                    rx.encoders().Get(1).value(),
+                    rx.encoders().Get(2).value(),
+                    rx.encoders().Get(3).value();
+//
+//            cout << rx.robot_id()<<"encoders";
+//
+//
+//            cout << rx.encoders().Get(0).value()<< " " <<
+//                    rx.encoders().Get(1).value()<< " " <<
+//                    rx.encoders().Get(2).value()<< " " <<
+//                    rx.encoders().Get(3).value() <<endl;
+//
+//
+//            cout << "sum" << enc_reading_sum<<endl;
 
             enc_reading_buf.push_back(read);
             enc_reading_sum += read;
+
+            auto enc_delta_bdy_rel = RobotModel::get().EncToBot * read.cast<double>();
+            Point delta_bdy_rel_pos(enc_delta_bdy_rel[0,0], enc_delta_bdy_rel[1,0]);
+
+            const auto &delta_ang = enc_delta_bdy_rel[2,0];
+            enc_global_sum.second += delta_ang;
+
+            auto estimate_angle = _currentEstimate.angle + enc_global_sum.second;
+            auto world_delta = delta_bdy_rel_pos.rotated(-M_PI / 2 + estimate_angle);
+            enc_global_sum.first += world_delta;
+
+            enc_global_buf.push_back(make_pair(world_delta, delta_ang));
 
             have_valid_encs = true;
         }
@@ -208,15 +238,25 @@ void RobotFilter::update(
                           _currentEstimate.pos.y(),
                           _currentEstimate.angle;
 
-            auto enc_delta_bdy_rel = RobotModel::get().EncToBot * enc_reading_sum.cast<double>();
 
-            Point delta_bdy_rel_pos(enc_delta_bdy_rel[0,0], enc_delta_bdy_rel[1,0]);
-            auto world_delta = delta_bdy_rel_pos.rotated(-M_PI / 2 + _currentEstimate.angle);
+//            auto enc_delta_bdy_rel = RobotModel::get().EncToBot * enc_reading_sum.cast<double>();
 
-            _currentEstimate.pos += world_delta;
-            _currentEstimate.angle += enc_delta_bdy_rel[2,0];
+//            Point delta_bdy_rel_pos(enc_delta_bdy_rel[0,0], enc_delta_bdy_rel[1,0]);
+//            auto world_delta = delta_bdy_rel_pos.rotated(-M_PI / 2 + _currentEstimate.angle);
+
+
+            _currentEstimate.pos += enc_global_sum.first;
+            _currentEstimate.angle += enc_global_sum.second;
+//            _currentEstimate.pos += world_delta;
+//            _currentEstimate.angle += enc_delta_bdy_rel[2,0];
 
             if (verbose) std::cout << "Adding position deltas" << std::endl;
+            std::stringstream ss;
+            cout << enc_global_sum.first << " " << enc_global_sum.second << endl;
+
+
+            auto our_robot = static_cast<OurRobot*>(robot);
+//            our_robot->addText(QString::fromStdString(ss.str()), Qt::white, "positions");
         }
 
         *robot = _currentEstimate;

@@ -98,7 +98,8 @@ void SimRadio::receive() {
         }
 
         for (auto e : grsim_packet.encoders()) {
-            rx.add_encoders(e);
+            auto encoder = rx.add_encoders();
+            encoder->set_value(e);
         }
 
         rx.set_fpga_status(FpgaGood); // overwrite

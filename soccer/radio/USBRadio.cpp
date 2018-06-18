@@ -312,7 +312,8 @@ void USBRadio::handleRxData(uint8_t* buf) {
     }
 
     for (std::size_t i = 0; i < 4; i++) {
-        packet.add_encoders(msg->encDeltas[i]);
+        auto encoder = packet.add_encoders();
+        encoder->set_value(msg->encDeltas[i]);
     }
 
     // fpga status

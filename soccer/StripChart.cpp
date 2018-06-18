@@ -269,6 +269,15 @@ bool Chart::NumericField::value(const Packet::LogFrame& frame, float& v) const {
                             v = ref->GetRepeatedFloat(*msg, fd, j);
                             break;
 
+
+                        case FieldDescriptor::TYPE_INT32:
+                            v = ref->GetRepeatedInt32(*msg, fd, j);
+                            break;
+
+                        case FieldDescriptor::TYPE_INT64:
+                            v = ref->GetRepeatedInt64(*msg, fd, j);
+                            break;
+
                         case FieldDescriptor::TYPE_DOUBLE:
                             v = ref->GetRepeatedDouble(*msg, fd, j);
                             break;
@@ -288,6 +297,10 @@ bool Chart::NumericField::value(const Packet::LogFrame& frame, float& v) const {
 
                         case FieldDescriptor::TYPE_DOUBLE:
                             v = ref->GetDouble(*msg, fd);
+                            break;
+
+                        case FieldDescriptor::TYPE_INT32:
+                            v = ref->GetInt32(*msg, fd);
                             break;
 
                         default:

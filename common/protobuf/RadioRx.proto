@@ -46,6 +46,11 @@ message DebugResponses
     optional float value = 2;
 }
 
+message Encoder
+{
+    optional float value = 1;
+}
+
 // Packet going out from radio program to control program
 message RadioRx
 {
@@ -57,7 +62,7 @@ message RadioRx
 	optional BallSenseStatus ball_sense_status = 5;
 	
 	repeated MotorStatus motor_status = 7;
-	repeated int32 encoders = 8;
+	repeated Encoder encoders = 8;
 	
 	optional uint32 kicker_status = 9;
 	
