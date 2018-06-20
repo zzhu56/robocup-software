@@ -206,6 +206,7 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
         ball_dir = (main.ball().pos - self.robot.pos).normalized()
         self.robot.set_dribble_speed(self.dribbler_power)
         self.robot.set_world_vel(ball_dir*Capture.DelaySpeed)
+        self.robot.face(main.ball().pos)
 
     def role_requirements(self):
         reqs = super().role_requirements()
