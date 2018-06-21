@@ -14,23 +14,23 @@ import math
 
 class Capture(single_robot_behavior.SingleRobotBehavior):
     # Speed in m/s at which a capture will be handled by coarse and fine approach instead of intercept
-    InterceptVelocityThresh = 0.1
+    InterceptVelocityThresh = 0.2
 
     # Multiplied by the speed of the ball to find a "dampened" point to move to during an intercept
     DampenMult = 0.0
 
     # The distance to transition from coarse approach to fine
     # TODO: The correct way to do this would be using our official max acceleration and current speed
-    CoarseToFineApproachDistance = 0.5
+    CoarseToFineApproachDistance = 0.3
 
     # the speed to have coarse approach switch from approach the ball from behind to approaching in a hook motion
-    HookToDirectApproachTransisitonSpeed = 0.05
+    HookToDirectApproachTransisitonSpeed = 0.1
 
-    # The distance state to avoid the ball in coarse approach
+    # The distance state to avoid the ball.def("predict_pos", &Ball::predictPosition) in coarse approach
     CoarseApproachAvoidBall = 0.3
 
     # Minimum speed (On top of ball speed) to move towards the ball
-    FineApproachMinDeltaSpeed = 0.1
+    FineApproachMinDeltaSpeed = 0.2
 
     # Proportional term on the distance error between ball and robot during fine approach
     # Adds to the fine approach speed
@@ -40,15 +40,15 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
     FineApproachBallSpeedMultiplier = .8
 
     # Time in which to wait in delay state to confirm the robot has the ball
-    DelayTime = 0.5
+    DelayTime = 0.2
 
     # Default dribbler speed, can be overriden by self.dribbler_power
     # Sets dribbler speed during intercept and fine approach
-    DribbleSpeed = 0
+    DribbleSpeed = 100
 
     # The minimum dot product result between the ball and the robot to count as the ball moving at the
     # robot
-    InFrontOfBallCosOfAngleThreshold = 0.3
+    InFrontOfBallCosOfAngleThreshold = 0.0
 
     DelaySpeed = 0.1
     class State(Enum):
@@ -96,13 +96,13 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
         # Hook to Coarse
         self.add_transition(
             Capture.State.hook_approach, Capture.State.coarse_approach,
-            lambda: main.ball().vel.mag() < Capture.HookToDirectApproachTransisitonSpeed or self.find_hook_point().near_point(self.robot.pos, 0.2),
+            lambda: main.ball().vel.mag() < Capture.HookToDirectApproachTransisitonSpeed or self.lastApproachTarget.near_point(self.robot.pos, 0.2) if self.lastApproachTarget is not None else self.find_hook_point().near_point(self.robot.pos, 0.2),
             'Moving to capture')
 
         # Coarse to Hook
         self.add_transition(
             Capture.State.coarse_approach, Capture.State.hook_approach,
-            lambda: main.ball().vel.mag() >= Capture.HookToDirectApproachTransisitonSpeed and not self.bot_in_front_of_ball,
+            lambda: main.ball().vel.mag() >= Capture.HookToDirectApproachTransisitonSpeed and self.bot_in_front_of_ball(),
             'Moving to Coarse')
 
         # Coarse Approach to Fine
@@ -147,7 +147,7 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
     # Ball is moving towards us and will not stop before reaching us
     def bot_in_front_of_ball(self):
         ball2bot = self.bot_to_ball() * -1
-        return (ball2bot.normalized().dot(main.ball().vel.normalized()) > Capture.InFrontOfBallCosOfAngleThreshold)
+        return (ball2bot.normalized().dot(main.ball().vel) > Capture.InFrontOfBallCosOfAngleThreshold)
     # and ((ball2bot).mag() < (evaluation.ball.predict_stop() - main.ball().pos).mag())
 
     # calculates intercept point for the fast moving intercept state
@@ -180,7 +180,7 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
     def execute_hook_approach(self):
         self.robot.set_dribble_speed(Capture.DribbleSpeed)
         move_point = self.find_hook_point()
-        if (self.lastApproachTarget != None and (move_point - self.lastApproachTarget).mag() < 0.4):
+        if (self.lastApproachTarget != None and (move_point - self.lastApproachTarget).mag() < 20):
             move_point = self.lastApproachTarget
 
         self.lastApproachTarget = move_point
@@ -275,17 +275,35 @@ def find_robot_intercept_point(robot):
 
 # Finds a point ahead of the ball and to the right or left of it if the ball velocity is above the threshold. Otherwise returns ball position
 def find_robot_hook_point(robot):
-    pos = main.ball().pos + main.ball().vel * 1.4
-    move_point = pos + main.ball().vel * 0.2
-    angle = pos.normalized().cross(robot.pos.normalized())
-    if angle < 0.05:
-        move_point.rotate(pos, math.pi/2)
-    elif angle > -0.05:
-        move_point.rotate(pos, -1 * (math.pi/2))
-    else:
-        move_point.rotate(pos, -1 * (math.pi/2))
+    ball = main.ball()
+    ball_end_time = round(ball.predict_seconds_to_stop())
+    pos = ball.pos
+    steps = ball_end_time * 2
+    for i in range(steps):
+        ball_time = i / (2 * 2)
+        pos = evaluation.ball.predict()
+        # how long will it take the ball to get there
+        robotDist = (pos - robot.pos).mag()
+        bot_time = robocup.get_trapezoidal_time(robotDist, robotDist, 2.2, 1.5,
+                                                robot.vel.mag(), 0)
+        if bot_time < ball_time:
+            break
 
-    return move_point
+    return pos
+
+
+
+    # pos = main.ball().pos + main.ball().vel * 1.4
+    # move_point = pos + main.ball().vel * 0.2
+    # angle = pos.normalized().cross(robot.pos.normalized())
+    # if angle < 0.05:
+    #     move_point.rotate(pos, math.pi/2)
+    # elif angle > -0.05:
+    #     move_point.rotate(pos, -1 * (math.pi/2))
+    # else:
+    #     move_point.rotate(pos, -1 * (math.pi/2))
+
+    # return move_point
 
 def find_robot_coarse_point(robot):
     return main.ball().pos
@@ -304,7 +322,7 @@ def find_robot_capture_point(robot):
         pos = main.ball().pos + main.ball().vel + approach_vec * dist
         # how long will it take the ball to get there
         ball_time = evaluation.ball.rev_predict(dist)
-        robotDist = (pos - robot.pos).mag() * 0.6
+        robotDist = (pos - robot.pos).mag()
         bot_time = robocup.get_trapezoidal_time(robotDist, robotDist, 2.2, 1,
                                                 robot.vel.mag(), 0)
 
