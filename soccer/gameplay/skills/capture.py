@@ -26,7 +26,7 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
     # the speed to have coarse approach switch from approach the ball from behind to approaching in a hook motion
     HookToDirectApproachTransisitonSpeed = 0.1
 
-    # The distance state to avoid the ball.def("predict_pos", &Ball::predictPosition) in coarse approach
+    # The distance state to avoid the ball
     CoarseApproachAvoidBall = 0.3
 
     # Minimum speed (On top of ball speed) to move towards the ball
@@ -96,13 +96,13 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
         # Hook to Coarse
         self.add_transition(
             Capture.State.hook_approach, Capture.State.coarse_approach,
-            lambda: main.ball().vel.mag() < Capture.HookToDirectApproachTransisitonSpeed or self.lastApproachTarget.near_point(self.robot.pos, 0.2) if self.lastApproachTarget is not None else self.find_hook_point().near_point(self.robot.pos, 0.2),
+            lambda: Capture.InterceptVelocityThresh > main.ball().vel.mag() and main.ball().vel.mag() < Capture.HookToDirectApproachTransisitonSpeed or (self.lastApproachTarget.near_point(self.robot.pos, 0.2) if self.lastApproachTarget is not None else self.find_hook_point().near_point(self.robot.pos, 0.2)),
             'Moving to capture')
 
         # Coarse to Hook
         self.add_transition(
             Capture.State.coarse_approach, Capture.State.hook_approach,
-            lambda: main.ball().vel.mag() >= Capture.HookToDirectApproachTransisitonSpeed and self.bot_in_front_of_ball(),
+            lambda: Capture.InterceptVelocityThresh > main.ball().vel.mag() and main.ball().vel.mag() >= Capture.HookToDirectApproachTransisitonSpeed and self.bot_in_front_of_ball(),
             'Moving to Coarse')
 
         # Coarse Approach to Fine
@@ -258,7 +258,7 @@ class Capture(single_robot_behavior.SingleRobotBehavior):
         for r in role_assignment.iterate_role_requirements_tree_leaves(reqs):
             if main.ball().valid:
                 if self.state == Capture.State.intercept:
-                    reqs.cost_func = lambda r: robocup.Line(main.ball().pos, main.ball().pos + main.ball().vel * 10).dist_to(r.pos)
+                    reqs.cost_func = lambda r: reqs.destination_shape(robocup.Line(main.ball().pos, main.ball().pos + main.ball().vel * 10))
                 else:
                     reqs.cost_func = lambda r: main.ball().pos.dist_to(r.pos)
         return reqs
@@ -281,9 +281,9 @@ def find_robot_hook_point(robot):
     steps = ball_end_time * 2
     for i in range(steps):
         ball_time = i / (2 * 2)
-        pos = evaluation.ball.predict()
+        pos = ball.predict_pos(ball_time)
         # how long will it take the ball to get there
-        robotDist = (pos - robot.pos).mag()
+        robotDist = (pos - robot.pos).mag() * 1.2
         bot_time = robocup.get_trapezoidal_time(robotDist, robotDist, 2.2, 1.5,
                                                 robot.vel.mag(), 0)
         if bot_time < ball_time:
