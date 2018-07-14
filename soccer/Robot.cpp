@@ -214,6 +214,12 @@ void OurRobot::settle(Point target) {
     _motionCommand = std::make_unique<Planning::SettleCommand>(target);
 }
 
+void OurRobot::collect(Point target) {
+    if (!visible) return;
+
+    _motionCommand = std::make_unique<Planning::CollectCommand>(target);
+}
+
 void OurRobot::lineKick(Point target) {
     if (!visible) return;
 

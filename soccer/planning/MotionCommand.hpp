@@ -9,8 +9,8 @@ namespace Planning {
 
 /*
  * This is a superclass for different MotionCommands.
- * Currently implemented are PathTarget, WorldVel, Pivot, DirectPathtarget,
- * TuningPath, None
+ * Currently implemented are PathTarget, WorldVel, Pivot, Settle, Collect,
+ * DirectPathtarget, TuningPath, None
  */
 class MotionCommand {
 public:
@@ -21,6 +21,7 @@ public:
         Pivot,
         WorldVel,
         Settle,
+        Collect,
         LineKick,
         None
     };
@@ -104,6 +105,15 @@ struct SettleCommand : public MotionCommand {
     }
     explicit SettleCommand(Geometry2d::Point target)
         : MotionCommand(MotionCommand::Settle), target(target){};
+    const Geometry2d::Point target;
+};
+
+struct CollectCommand : public MotionCommand {
+    virtual std::unique_ptr<Planning::MotionCommand> clone() const override {
+        return std::make_unique<CollectCommand>(*this);
+    }
+    explicit CollectCommand(Geometry2d::Point target)
+        : MotionCommand(MotionCommand::Collect), target(target){};
     const Geometry2d::Point target;
 };
 

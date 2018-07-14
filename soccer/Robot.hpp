@@ -196,27 +196,30 @@ public:
     }
 
     /**
-     * Returns a const reference to the path of the robot.
+     * @brief Returns a const reference to the path of the robot.
      */
     const Planning::Path& path() {
         // return *angleFunctionPath.path;
         return angleFunctionPath;
     }
 
-    /// clears old radioTx stuff, resets robot debug text, and clears local
-    /// obstacles
+    /**
+     * @brief Clears old radioTx stuff, resets robot debug text, and clears local
+     * obstacles
+     */
     void resetForNextIteration();
 
-    /// clears all fields in the robot's MotionConstraints object, causing the
-    /// robot to stop
+    /**
+     * @brief Clears all fields in the robot's MotionConstraints object,
+     * causing the robot to stop
+     */
     void resetMotionConstraints();
 
     /** Stop the robot */
     void stop();
 
     /**
-     * Makes this robot execute a lineKick
-     *
+     * @brief Makes this robot execute a lineKick
      * @param target - The target to kick towards (aiming point)
      */
     void lineKick(Geometry2d::Point target);
@@ -245,15 +248,30 @@ public:
      */
     void moveTuning(Geometry2d::Point goal, float endSpeed = 0);
 
+    /**
+     * @brief Tries to slow the ball to a halt by either intercepting
+     * it when in front of the ball or wrapping around and "hooking the ball"
+     * to slow it to a halt
+     * @param A future target position. The robot will try to settle the ball
+     * in the direction of this point.
+     */
     void settle(Geometry2d::Point target);
 
     /**
-     * Sets the worldVelocity in the robot's MotionConstraints
+     * @brief Slowly moves in on the ball while running the dribbler to acquire
+     * control of the ball
+     * @param A future target position. The robot will try to collect the ball
+     * in the direction of this point.
+     */
+    void collect(Geometry2d::Point target);
+
+    /**
+     * @brief Sets the worldVelocity in the robot's MotionConstraints
      */
     void worldVelocity(Geometry2d::Point targetWorldVel);
 
     /**
-     * Face a point while remaining in place
+     * @brief Face a given point while remaining in place
      */
     void face(Geometry2d::Point pt);
 
@@ -263,12 +281,13 @@ public:
     void faceNone();
 
     /**
-     * The robot pivots around it's mouth toward the given target
+     * @brief Pivots the robot around it's mouth toward the given target
      */
     void pivot(Geometry2d::Point pivotTarget);
 
     /*
-     * Enable dribbler (0 to 127)
+     * @brief Enables the dribbler with a given speed
+     * @param speed a value between 1 and 127
      */
     void dribble(uint8_t speed);
 
@@ -282,26 +301,28 @@ public:
      */
 
     /**
-     * enable kick when ready at a given percentage of the currently set max
+     * Enable kick when ready at a given percentage of the currently set max
      * kick power.
      * @param strength a value between 0 and 1
      */
     void kick(float strength);
 
     /**
-     * enable kick when ready at a given strength (0-255)
+     * @brief Enable kick when ready at a given strength
+     * @param strength a value between 0 and 255
      */
     void kickLevel(uint8_t strength);
 
     /**
-     * enable chip when ready at a given percentage of the currently set max
-     * chip power.
+     * @brief Enable chip when ready at a given percentage of the currently set
+     * max chip power.
      * @param strength a value between 0 and 1
      */
     void chip(float strength);
 
     /**
-     * enable chip when ready at a given strength (0-255)
+     * @brief Enable chip when ready at a given strength
+     * @param strength a value between 0 and 255
      */
     void chipLevel(uint8_t strength);
 
