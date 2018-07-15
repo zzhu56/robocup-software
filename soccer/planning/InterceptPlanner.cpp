@@ -60,35 +60,10 @@ std::unique_ptr<Path> InterceptPlanner::run(PlanRequest& planRequest) {
     std::unique_ptr<Path> path;
     std::vector<Geometry2d::Point> startEndPoints{startInstant.pos, targetPosOnLine};
 
-    // Scale the end velocity by % of max velocity to see if we can reach the target
-    // at the same time as the ball
-    for (double mag = 0.0; mag <= 1.0; mag += .05) {
-        path = RRTPlanner::generatePath(startEndPoints, obstacles, motionConstraints,
-                                        startInstant.vel, 
-                                        mag*motionConstraints.maxSpeed * botToTargetNorm);
-
-        // First path where we can reach the point at or before the ball
-        // If the end velocity is not 0, you should reach the point as close
-        // to the ball time as possible to just ram it
-        if (path) {
-            botToPointTime = path->getDuration();
-
-            if (botToPointTime <= ballToPointTime) {
-                path->setDebugText("Found Path. RT " + QString::number(botToPointTime.count(), 'g', 2) +
-                                   " BT " + QString::number(ballToPointTime.count(), 'g', 2) +
-                                   " FS " + QString::number(mag));
-                
-                return std::make_unique<AngleFunctionPath>(
-                    std::move(path), 
-                    angleFunctionForCommandType(FacePointCommand(ball.pos))); 
-            }
-        }
-    }
-
     QString debug;
 
     MotionInstant target;
-    target.pos = targetPosOnLine;
+    target.pos = targetInterceptPos;
     
     // If we are already almost at the correct point, dont speed out of the way
     // We may not find a path that is shorter to the ball because our ball filter is off a lot...

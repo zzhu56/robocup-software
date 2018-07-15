@@ -17,11 +17,11 @@ class Move(single_robot_behavior.SingleRobotBehavior):
 
         self.add_transition(
             behavior.Behavior.State.running, behavior.Behavior.State.completed,
-            lambda: self.pos != None and (self.robot.pos - self.pos).mag() < self.threshold,
+            lambda: False, #self.pos != None and (self.robot.pos - self.pos).mag() < self.threshold,
             'target pos reached')
         self.add_transition(
             behavior.Behavior.State.completed, behavior.Behavior.State.running,
-            lambda: self.pos != None and (self.robot.pos - self.pos).mag() > self.threshold,
+            lambda: False, #self.pos != None and (self.robot.pos - self.pos).mag() > self.threshold,
             'away from target')
 
     ## the position to move to (a robocup.Point object)
@@ -44,7 +44,7 @@ class Move(single_robot_behavior.SingleRobotBehavior):
 
     def execute_running(self):
         if self.pos != None:
-            self.robot.move_to(self.pos)
+            self.robot.intercept(self.pos)
 
     def role_requirements(self):
         reqs = super().role_requirements()
